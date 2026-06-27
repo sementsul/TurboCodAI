@@ -1,0 +1,2537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Sementsul Maxim">
+<meta name="description" content="TurboCodAI — браузерный AI-клиент (OpenAI-совместимый). Автор: Sementsul Maxim">
+<title>TurboCodAI</title>
+<!-- TurboCodAI · автор: Sementsul Maxim -->
+<style>
+  :root{--bg:#0e1014;--panel:#15181f;--panel2:#1b1f28;--line:#272d39;--txt:#e7e9ee;--muted:#94a0b3;--accent:#5b9dff;--ok:#34d399;--code:#0b0d12;--user:#1d2740}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--txt);font:15px/1.55 -apple-system,Segoe UI,Roboto,Arial,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:16px;margin:0}
+  header .sub{font-size:12px;color:var(--muted)}
+  header .spacer{flex:1}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;line-height:1;transition:background .12s,border-color .12s}
+  button:hover{background:var(--line);border-color:var(--muted)}
+  button.primary{background:var(--accent);color:#06101f;border:0;font-weight:700}
+  button.primary:hover{filter:brightness(1.08);background:var(--accent)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button svg{width:16px;height:16px;flex:0 0 auto;stroke:currentColor;fill:none}
+  header button, .composer button{padding:8px 12px}
+  .settings{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 16px;display:none}
+  .settings.open{display:block}
+  .settings .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .fld{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+  .fld input,.fld select,.fld textarea{background:#0f1218;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--txt);font-size:13px;outline:none;font-family:inherit}
+  .fld input:focus,.fld textarea:focus{border-color:var(--accent)}
+  .fld textarea{width:100%;min-height:90px;resize:vertical}
+  .hint{font-size:11px;color:var(--muted);margin-top:8px}
+  main{flex:1;overflow-y:auto;padding:18px 0}
+  .wrap{max-width:820px;margin:0 auto;padding:0 16px}
+  .msg{display:flex;gap:10px;margin:14px 0}
+  .msg .av{flex:0 0 30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  .msg.user .av{background:var(--user);color:#9db4ff}
+  .msg.assistant .av{background:#16241c;color:var(--ok)}
+  .msg .body{flex:1;min-width:0}
+  .msg .who{font-size:12px;color:var(--muted);margin-bottom:3px}
+  .bubble{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;overflow-x:auto}
+  .msg.user .bubble{background:var(--user);border-color:#2a3a63}
+  .bubble p{margin:8px 0} .bubble p:first-child{margin-top:0} .bubble p:last-child{margin-bottom:0}
+  .bubble pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;margin:10px 0}
+  .bubble code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#ffd9a0}
+  .bubble pre code{background:none;padding:0;color:#d7e0f0}
+  .bubble ul,.bubble ol{margin:8px 0;padding-left:22px}
+  .err{color:#f87171;font-size:13px}
+  footer{border-top:1px solid var(--line);background:var(--panel);padding:12px 16px}
+  .composer{max-width:820px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+  .composer textarea{flex:1;background:#0f1218;border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--txt);font-size:15px;outline:none;resize:none;max-height:200px;font-family:inherit}
+  .composer textarea:focus{border-color:var(--accent)}
+  .empty{color:var(--muted);text-align:center;margin-top:40px}
+
+  /* светлая тема */
+  body.light{--bg:#f5f6f8;--panel:#ffffff;--panel2:#eef1f5;--line:#d8dde6;--txt:#1c2330;--muted:#5b6675;--accent:#2563eb;--code:#f1f3f7;--user:#e3ebff}
+  body.light button.primary{color:#fff}
+  body.light .bubble code{color:#b45309}
+  body.light .bubble pre code{color:#1c2330}
+  /* подсветка синтаксиса (токены) — тёмная тема */
+  .t-com{color:#7d8799;font-style:italic} .t-str{color:#9ece6a} .t-num{color:#e5a06a}
+  .t-kw{color:#c178e0} .t-lit{color:#56b6c2} .t-fn{color:#61afef} .t-op{color:#9aa4b5}
+  .t-tag{color:#e06c75} .t-attr{color:#e5a06a}
+  body.light .t-com{color:#6a737d} body.light .t-str{color:#1a7f37} body.light .t-num{color:#9a4d00}
+  body.light .t-kw{color:#a626a4} body.light .t-lit{color:#0184bb} body.light .t-fn{color:#3a6df0} body.light .t-op{color:#444c56}
+  body.light .t-tag{color:#d73a49} body.light .t-attr{color:#6f42c1}
+  /* код-блоки в чате с нумерацией строк */
+  .bubble pre.codeblock{display:flex;padding:0;overflow:hidden}
+  .codeblock .ln-col{flex:0 0 auto;padding:12px 8px 12px 10px;text-align:right;color:var(--muted);user-select:none;white-space:pre;
+    border-right:1px solid var(--line);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5}
+  .codeblock .code-wrap{flex:1;min-width:0;overflow-x:auto;padding:12px}
+  .codeblock .code-wrap code{display:block;white-space:pre;line-height:1.5;background:none;padding:0}
+  /* diff «изменения» */
+  .diff-head{font-size:12px;color:var(--muted);padding:2px 2px 8px}
+  .diffblock{flex:1;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--code);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5}
+  .dl{display:flex;white-space:pre}
+  .dl.add{background:rgba(52,211,153,.14)} .dl.del{background:rgba(248,113,113,.14)}
+  .dln{flex:0 0 auto;width:34px;text-align:right;padding:0 5px;color:var(--muted);user-select:none}
+  .dsg{flex:0 0 auto;width:16px;text-align:center;color:var(--muted);user-select:none}
+  .dl.add .dsg{color:#34d399} .dl.del .dsg{color:#f87171}
+  .dco{flex:1;padding-right:10px;white-space:pre;overflow-x:auto}
+  .art-tab .tab-badge{font-size:10px;margin-left:4px;font-weight:600}
+  .tab-badge .tb-add{color:#34d399} .tab-badge .tb-del{color:#f87171}
+
+  /* сцена: чат + панель артефактов */
+  .stage{flex:1;display:flex;min-height:0}
+  main{flex:1}
+  .art{flex:0 0 46%;max-width:46%;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-width:0}
+  .art.hidden{display:none}
+  .art-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+  .art-head .spacer{flex:1}
+  .art-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .art-tab{padding:5px 10px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);white-space:nowrap}
+  .art-tab.active{background:var(--accent);color:#06101f;border-color:var(--accent);font-weight:700}
+  .art-tab-x{margin-left:6px;opacity:.5;cursor:pointer;font-weight:400}
+  .art-tab-x:hover{opacity:1;color:#f87171}
+  body.light .art-tab.active{color:#fff}
+  .art-seg{display:flex;gap:0;padding:8px 12px 0}
+  .art-seg button{border-radius:0;border:1px solid var(--line)}
+  .art-seg button:first-child{border-radius:7px 0 0 7px}
+  .art-seg button:last-child{border-radius:0 7px 7px 0;border-left:0}
+  .art-seg button.on{background:var(--accent);color:#06101f;font-weight:700;border-color:var(--accent)}
+  body.light .art-seg button.on{color:#fff}
+  .art-body{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px 12px;gap:8px}
+  .art-prev{flex:1;min-height:120px;border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
+  .art-prev iframe{width:100%;height:100%;border:0;background:#fff}
+  .art-code{flex:1;min-height:120px;position:relative}
+  .art-code pre.code-hl,.art-code textarea{position:absolute;inset:0;margin:0;border:1px solid var(--line);border-radius:8px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;padding:10px 10px 10px 54px;white-space:pre;overflow:auto;tab-size:2;-moz-tab-size:2}
+  .art-code .art-ln{position:absolute;top:0;left:0;bottom:0;width:46px;overflow:hidden;padding:10px 6px 10px 0;text-align:right;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;white-space:pre;color:var(--muted);
+    background:var(--code);border:1px solid var(--line);border-right:0;border-radius:8px 0 0 8px;pointer-events:none;z-index:2}
+  .art-code pre.code-hl{background:var(--code);color:var(--txt);pointer-events:none;z-index:0}
+  .art-code pre.code-hl code{font:inherit;color:inherit;background:none;padding:0}
+  .art-code textarea{background:transparent;color:transparent;caret-color:var(--accent);resize:none;outline:none;z-index:1}
+  .art-code textarea::selection{background:rgba(91,157,255,.32)}
+  .art-empty{margin:auto;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+  .suggestions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .sugg{font-size:12px;padding:5px 10px;border-radius:14px;border:1px solid var(--accent);color:var(--accent);background:none;cursor:pointer}
+  .sugg:hover{background:var(--accent);color:#06101f}
+  body.light .sugg:hover{color:#fff}
+
+  /* shell: сайдбар чатов + основная колонка */
+  .shell{flex:1;display:flex;min-height:0}
+  .main-col{flex:1;display:flex;flex-direction:column;min-width:0}
+  .sidebar{flex:0 0 240px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .sidebar.hidden{display:none}
+  .side-head{padding:10px 12px;border-bottom:1px solid var(--line)}
+  .side-new{width:100%}
+  .chat-list{flex:1;overflow-y:auto;padding:6px}
+  .chat-item{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px}
+  .chat-item:hover{background:var(--panel2)}
+  .chat-item.active{background:var(--panel2)}
+  .chat-item .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chat-item .del{opacity:.4;border:0;background:none;padding:2px 5px;font-size:12px}
+  .chat-item .del:hover{opacity:1;color:#f87171}
+  .chat-item .del svg{width:14px;height:14px}
+  .chat-item .del{background:none;border:0}
+  .side-foot{border-top:1px solid var(--line);padding:10px 12px}
+  .side-foot .fld{width:100%}
+
+  /* профиль / тумблер / сохранение */
+  .prof-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);margin-top:14px;cursor:pointer}
+
+  /* вложения */
+  .attach-row{max-width:820px;margin:0 auto 6px;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:3px 9px;display:inline-flex;gap:6px;align-items:center}
+  .chip .x{cursor:pointer;opacity:.6}
+  .chip .x:hover{opacity:1;color:#f87171}
+  .composer button#attachBtn{padding:7px 10px}
+  .msg .files{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .msg .files img{max-width:130px;max-height:130px;border-radius:6px;margin:4px 6px 0 0;vertical-align:top;border:1px solid var(--line)}
+
+  /* тост */
+  .toast2{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#06101f;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast2.show{opacity:1}
+  body.light .toast2{color:#fff}
+
+  /* панель контекста */
+  .ctx-panel{position:fixed;top:0;right:0;bottom:0;width:340px;max-width:92vw;background:var(--panel);border-left:1px solid var(--line);z-index:88;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.35)}
+  .ctx-panel.hidden{display:none}
+  .ctx-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .ctx-head .spacer{flex:1}
+  .ctx-body{flex:1;overflow-y:auto;padding:12px 14px;font-size:13px}
+  .ctx-body h4{margin:14px 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .ctx-body .note{color:var(--muted);font-size:12px;margin:2px 0}
+  .ctx-stat{margin:3px 0}
+  .ctx-msg{padding:6px 8px;border:1px solid var(--line);border-radius:7px;margin:5px 0;background:var(--panel2);word-break:break-word}
+  .ctx-role{font-size:10px;color:var(--muted);text-transform:uppercase;margin-right:6px}
+  .ctx-file{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line)}
+  .ctx-file .ctx-size{margin-left:auto;color:var(--muted);font-size:11px}
+  .ctx-file .x{cursor:pointer;opacity:.5}
+  .ctx-file .x:hover{opacity:1;color:#f87171}
+  .ctx-file .vfs-open{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ctx-file .vfs-open:hover{color:var(--accent)}
+  .ctx-file .ctx-size{margin-left:6px}
+  .ctx-file .vfs-act{cursor:pointer;opacity:.55;display:inline-flex;align-items:center}
+  .ctx-file .vfs-act:hover{opacity:1;color:var(--accent)}
+  .ctx-file svg{width:14px;height:14px}
+  .ctx-foot{border-top:1px solid var(--line);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px}
+  /* файловый менеджер */
+  .fm-dir{cursor:pointer;padding:4px 0;font-size:13px;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fm-dir:hover{color:var(--accent)}
+  .fm-file{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px}
+  .fm-file .fm-name{flex:1;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fm-file .fm-name:hover{color:var(--accent)}
+  .fm-acts{display:inline-flex;gap:8px;opacity:.55;align-items:center}
+  .fm-file:hover .fm-acts{opacity:1}
+  .fm-a{cursor:pointer;display:inline-flex;align-items:center;font-size:13px}
+  .fm-a:hover{color:var(--accent)}
+  .fm-acts svg{width:14px;height:14px}
+  #fmPanel.fm-drag{outline:2px dashed var(--accent);outline-offset:-6px}
+
+  /* команда агентов */
+  .ag-agent{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;margin:5px 0;background:var(--panel2);font-size:13px}
+  .ag-badge{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap}
+  .ag-badge.work{color:var(--accent);border-color:var(--accent)}
+  .ag-badge.done{color:var(--ok);border-color:var(--ok)}
+  .ag-badge.err{color:#f87171;border-color:#f87171}
+  .ag-badge.wait{color:var(--muted)}
+  .ag-stream{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;white-space:pre-wrap;color:var(--muted);max-height:170px;overflow:auto;border:1px dashed var(--line);border-radius:6px;padding:6px}
+  .composer button.on{background:var(--accent);color:#06101f;border-color:var(--accent)}
+  body.light .composer button.on{color:#fff}
+  .ag-prof{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer}
+  .ag-prof .ctx-size{margin-left:auto;color:var(--muted);font-size:11px}
+  /* полноэкранное превью */
+  .fs-overlay{position:fixed;inset:0;z-index:200;background:#fff;display:flex;flex-direction:column}
+  .fs-overlay.hidden{display:none}
+  .fs-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--panel);border-bottom:1px solid var(--line);color:var(--txt)}
+  .fs-overlay iframe{flex:1;width:100%;border:0;background:#fff}
+  /* модалка профессионального проекта */
+  .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal-ov.hidden{display:none}
+  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .modal-b{padding:14px 16px;overflow:auto}
+  .modal-b .note{margin:0 0 12px}
+  .modal-f{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+  .pro-field{margin-bottom:12px}
+  .pro-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .pro-field textarea{width:100%;background:#0f1218;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px 10px;font-family:inherit;font-size:13px;outline:none;resize:vertical}
+  body.light .pro-field textarea{background:#fff}
+  .pro-field textarea:focus{border-color:var(--accent)}
+  .pro-file{margin-top:4px;font-size:12px;padding:4px 8px}
+  /* модалка GitHub — понятный flow */
+  .repo-connected{font-size:14px;margin-bottom:12px}
+  .repo-big{width:100%;justify-content:center;padding:11px;font-size:14px}
+  .repo-adv{margin-top:10px;font-size:13px}
+  .repo-adv summary{cursor:pointer;color:var(--muted);padding:6px 0}
+  .repo-adv .fld{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+  .repo-adv .fld input{background:#0f1218;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--txt);font-size:13px;outline:none}
+  body.light .repo-adv .fld input{background:#fff}
+  .repo-link{background:none;border:0;color:var(--muted);text-decoration:underline;padding:8px 0;margin-top:8px;display:inline-flex}
+  .repo-link:hover{color:#f87171;background:none}
+  .repo-action{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px}
+  .repo-action-title{font-size:13px;font-weight:600;margin-bottom:8px}
+  #repoConnect .fld span{font-size:12px;color:var(--muted)}
+  #repoConnect input{background:#0f1218;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--txt);font-size:13px;outline:none}
+  body.light #repoConnect input{background:#fff}
+  #repoConnect input:focus{border-color:var(--accent)}
+  .pro-badge{font-size:9px;font-weight:700;background:var(--accent);color:#06101f;border-radius:4px;padding:1px 4px;margin-right:5px}
+  body.light .pro-badge{color:#fff}
+
+  @media(max-width:900px){
+    .art{position:fixed;inset:0;flex:none;max-width:none;z-index:80}
+    .art.hidden{display:none}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:250px;z-index:85;box-shadow:0 0 30px rgba(0,0,0,.5)}
+    .sidebar.hidden{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <button id="sidebarBtn" title="Чаты">☰</button>
+  <h1>⚡ TurboCodAI <span class="sub" data-i18n="brand.sub">OpenAI-совместимый · автор Sementsul Maxim</span></h1>
+  <div class="spacer"></div>
+  <button id="artBtn" disabled>🧩 Артефакты</button>
+  <button id="fmBtn">📁 Файлы</button>
+  <button id="repoBtn">GitHub</button>
+  <button id="ctxBtn">🧠 Контекст</button>
+  <button id="agBtn">🤖 Команда</button>
+  <button id="kbBtn">База знаний</button>
+  <button id="langBtn" title="Язык / Language">EN</button>
+  <button id="themeBtn">🌗 Тема</button>
+  <button id="settingsBtn">⚙ Настройки</button>
+  <button id="clearBtn">Очистить чат</button>
+</header>
+
+<div class="shell">
+<aside class="sidebar" id="sidebar">
+  <div class="side-head">
+    <button class="primary side-new" id="newChat">＋ Новый чат</button>
+    <button class="side-new" id="proBtn" style="margin-top:6px">🏗 Профессиональный проект</button>
+  </div>
+  <div class="chat-list" id="chatList"></div>
+  <div class="side-foot">
+    <label class="fld" style="color:var(--muted)" data-i18n="side.profile">Профиль ИИ (подключение)
+      <select id="profileSel"></select>
+    </label>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button id="profNew" style="flex:1">＋ Профиль</button>
+      <button id="profDel" style="flex:1">🗑 Удалить</button>
+    </div>
+  </div>
+</aside>
+<div class="main-col">
+
+<div class="settings" id="settings">
+  <div class="prof-row">
+    <label class="fld" style="flex:1;min-width:200px" data-i18n="set.profName">Название профиля ИИ
+      <input id="profName" placeholder="Профиль 1">
+    </label>
+    <div class="hint" style="margin:0;flex:2;min-width:220px" data-i18n="set.profHint">Профиль хранит подключение (провайдер, URL, модель, ключ). Переключай профили слева. Тема и промпт — общие для всех профилей.</div>
+  </div>
+  <label class="switch" style="margin-top:0"><input type="checkbox" id="profImage"> <span data-i18n="set.imageProfile">🖼 Профиль генерации изображений (OpenAI images API). ИИ сможет создавать картинки тегом &lt;gen_image&gt;.</span></label>
+  <div class="row">
+    <label class="fld" style="flex:2;min-width:260px" data-i18n="set.apiKey">API-ключ (хранится локально в браузере)
+      <input id="apiKey" type="password" placeholder="sk-...">
+    </label>
+    <label class="fld" style="min-width:200px" data-i18n="set.provider">Провайдер (быстрый выбор)
+      <select id="provider">
+        <option value="">— выбрать —</option>
+        <option value="backend">Свой бэкенд (ключ на сервере)</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="openrouter">OpenRouter (есть :free)</option>
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+      </select>
+    </label>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <label class="fld" style="flex:2;min-width:260px" data-i18n="set.baseUrl">Base URL (OpenAI-совместимый)
+      <input id="baseUrl" placeholder="https://api.deepseek.com">
+    </label>
+    <label class="fld" style="flex:1;min-width:200px" data-i18n="set.model">Модель
+      <input id="model" list="modelList" placeholder="deepseek-chat">
+      <datalist id="modelList">
+        <option value="deepseek-chat"></option>
+        <option value="deepseek-reasoner"></option>
+        <option value="deepseek/deepseek-chat-v3-0324:free"></option>
+        <option value="meta-llama/llama-3.3-70b-instruct:free"></option>
+        <option value="gpt-4o-mini"></option>
+        <option value="llama-3.3-70b-versatile"></option>
+      </datalist>
+    </label>
+  </div>
+  <div class="hint" id="corsHint"></div>
+  <div class="row" style="margin-top:12px">
+    <label class="fld" style="flex:1;min-width:190px" data-i18n="set.promptSet">Набор промптов (файлы prompts/)
+      <select id="promptSet"></select>
+    </label>
+    <label class="fld" style="flex:1;min-width:190px" data-i18n="set.preset">Пресет
+      <select id="preset"></select>
+    </label>
+    <button id="reloadPrompts" style="height:36px">↻ Обновить</button>
+  </div>
+  <label class="fld" style="margin-top:12px" data-i18n="set.sysPrompt">Системный промпт (можно править вручную)
+    <textarea id="sysPrompt"></textarea>
+  </label>
+  <div class="hint" id="promptsHint"></div>
+  <label class="switch"><input type="checkbox" id="toolsOn"> <span data-i18n="set.tools">🔧 Функции (клиент сам вызывает API: погода, время, URL). Работает без стриминга, нужна модель с tool-calls.</span></label>
+  <div class="row" style="margin-top:14px;align-items:center">
+    <button class="primary" id="saveBtn">💾 Сохранить настройки</button>
+    <div class="hint" style="margin:0" data-i18n="set.saveHint">Сохраняет профиль и общие настройки в браузере (localStorage + куки). Ключ не зашит в файл.</div>
+  </div>
+  <div class="row" style="margin-top:10px;align-items:center;gap:8px">
+    <button id="defProfilesBtn">➕ Готовые профили</button>
+    <button id="exportBtn">⬇ Экспорт сессии</button>
+    <button id="importBtn">⬆ Импорт сессии</button>
+    <input type="file" id="importInput" accept="application/json,.json" style="display:none">
+    <div class="hint" style="margin:0" data-i18n="set.profilesHint">Готовые профили: DeepSeek, OpenRouter, Ollama, Gemini. Экспорт/импорт сессии — чат + файлы ФС + настройки.</div>
+  </div>
+</div>
+
+<div class="stage">
+  <main><div class="wrap" id="chat"><div class="empty" data-i18n="chat.empty">Введи API-ключ в ⚙ Настройках и напиши сообщение. Для генерации файлов выбери пресет «Artifacts (генератор кода)».</div></div></main>
+  <aside class="art hidden" id="artifacts">
+    <div class="art-head">
+      <strong data-i18n="art.title">🧩 Артефакты</strong>
+      <span class="spacer"></span>
+      <button id="artFull" title="Превью на весь экран">⛶</button>
+      <button id="artZip">⬇ Скачать ZIP</button>
+      <button id="artCloseBtn">✕</button>
+    </div>
+    <div class="art-tabs" id="artTabs"></div>
+    <div class="art-seg" id="artSeg">
+      <button data-mode="preview" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg> <span data-i18n="art.preview">Превью</span></button>
+      <button data-mode="code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> <span data-i18n="art.code">Код</span></button>
+    </div>
+    <div class="art-body" id="artBody"></div>
+  </aside>
+</div>
+
+<aside class="ctx-panel hidden" id="ctxPanel">
+  <div class="ctx-head"><strong data-i18n="ctx.title">🧠 Контекст</strong><span class="spacer"></span><button id="ctxClose">✕</button></div>
+  <div class="ctx-body" id="ctxBody"></div>
+  <div class="ctx-foot">
+    <button id="ctxUpload">⬆ Загрузить в ФС</button>
+    <input type="file" id="ctxFileInput" multiple style="display:none">
+    <button id="ctxCompress">🗜 Сжать контекст</button>
+    <button id="ctxClear">🧹 Очистить историю</button>
+  </div>
+</aside>
+
+<aside class="ctx-panel hidden" id="agPanel">
+  <div class="ctx-head"><strong data-i18n="ag.title">🤖 Команда агентов</strong><span class="spacer"></span><button id="agClose">✕</button></div>
+  <div class="ctx-body">
+    <label class="fld" style="color:var(--muted)" data-i18n="ag.max">Максимум агентов-исполнителей
+      <input id="agCount" type="number" min="1" max="50" value="4" style="width:90px">
+    </label>
+    <h4 style="margin:14px 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em" data-i18n="ag.profilesH">Профили команды (исполнители)</h4>
+    <div id="agProfiles"></div>
+    <div class="note" style="margin-top:8px" data-i18n="ag.note1">Главный (координатор) — активный профиль слева. Отмеченные профили распределяются по агентам по кругу — так задействуются разные ключи/модели и обходится лимит одного ключа (реальная параллельность). Ничего не отмечено → все агенты на активном профиле.</div>
+    <div class="note" style="margin-top:8px" data-i18n="ag.note2">Режим включается кнопкой 🤖 у поля ввода. Координатор сам решает, нужна ли команда (несколько файлов) или ответить одному. Прогресс — в чат.</div>
+  </div>
+</aside>
+
+<aside class="ctx-panel hidden" id="kbPanel">
+  <div class="ctx-head"><strong data-i18n="kb.title">📚 База знаний TurboCodAI</strong><span class="spacer" style="flex:1"></span><button id="kbClose">✕</button></div>
+  <div class="ctx-body" id="kbBody"></div>
+  <div class="ctx-foot">
+    <button id="kbAsk">Спросить ИИ о клиенте</button>
+    <button id="kbCopy">Копировать</button>
+  </div>
+</aside>
+
+<aside class="ctx-panel hidden" id="fmPanel" style="width:380px;max-width:94vw">
+  <div class="ctx-head"><strong data-i18n="fm.title">📁 Файловый менеджер</strong><span class="spacer" style="flex:1"></span><button id="fmClose">✕</button></div>
+  <div class="ctx-foot" style="border-top:0;border-bottom:1px solid var(--line)">
+    <button id="fmNew" data-i18n="fm.new">＋ Новый файл</button>
+    <button id="fmUpload" data-i18n="btn.vfsUpload">Загрузить в ФС</button>
+    <button id="fmZip" data-i18n="fm.zip">⬇ Проект (ZIP)</button>
+    <input type="file" id="fmFileInput" multiple style="display:none">
+  </div>
+  <div class="ctx-body" id="fmList"></div>
+</aside>
+
+<div id="repoModal" class="modal-ov hidden">
+  <div class="modal-card">
+    <div class="modal-h"><strong data-i18n="repo.title">Подключить репозиторий к чату</strong><button id="repoClose">✕</button></div>
+    <div class="modal-b">
+      <!-- состояние: подключено -->
+      <div id="repoCurrent" style="display:none">
+        <div class="repo-connected">✓ <span data-i18n="repo.connected">Подключён:</span> <b id="repoCurName"></b></div>
+        <div id="repoGhBox">
+          <button class="primary repo-big" id="repoPush" data-i18n="repo.push">💾 Сохранить изменения в GitHub</button>
+          <details class="repo-adv">
+            <summary data-i18n="repo.advanced">Дополнительно: ветка, сообщение, синхронизация</summary>
+            <label class="fld" data-i18n="repo.branch">Ветка<input id="repoBranch" placeholder="main"></label>
+            <label class="fld" data-i18n="repo.msg">Сообщение коммита<input id="repoMsg" placeholder="Update from TurboCodAI"></label>
+            <label class="switch"><input type="checkbox" id="repoFullSync"> <span data-i18n="repo.fullSync">удалять из репозитория файлы, которых нет локально</span></label>
+          </details>
+        </div>
+        <button class="repo-link" id="repoDisconnect" data-i18n="repo.disconnect">Отключить</button>
+      </div>
+
+      <!-- состояние: не подключено -->
+      <div id="repoConnect">
+        <div class="note" data-i18n="repo.intro">Подключи репозиторий: ИИ будет видеть его код, а ты — сохранять изменения обратно на GitHub.</div>
+        <label class="fld" style="margin-top:12px"><span data-i18n="repo.tokenLabel">GitHub-токен</span><input id="repoToken" type="password" placeholder="ghp_..."></label>
+        <div class="note" style="margin-top:4px"><span data-i18n="repo.tokenHelp">Нужен для приватных репозиториев, создания и сохранения. </span><a href="https://github.com/settings/tokens/new?scopes=repo&description=TurboCodAI" target="_blank" rel="noreferrer" data-i18n="repo.tokenGet">Создать токен →</a></div>
+
+        <div class="repo-action">
+          <div class="repo-action-title" data-i18n="repo.openTitle">📂 Открыть существующий репозиторий</div>
+          <div class="row" style="gap:8px">
+            <input id="repoUrl" style="flex:1" placeholder="owner/repo или ссылка GitHub">
+            <button class="primary" id="repoLoadGh" data-i18n="repo.open">Открыть</button>
+          </div>
+        </div>
+
+        <div class="repo-action">
+          <div class="repo-action-title" data-i18n="repo.createTitle">➕ Создать новый репозиторий</div>
+          <div class="row" style="gap:8px;align-items:center">
+            <input id="repoNewName" style="flex:1" placeholder="my-project">
+            <label class="switch" style="margin:0"><input type="checkbox" id="repoNewPriv"> <span data-i18n="repo.private">приватный</span></label>
+            <button class="primary" id="repoCreate" data-i18n="repo.createBtn">Создать</button>
+          </div>
+        </div>
+
+        <div class="repo-action">
+          <div class="repo-action-title" data-i18n="repo.localTitle">📁 Открыть локальную папку (без GitHub)</div>
+          <button id="repoFolderBtn" data-i18n="repo.folder">Выбрать папку</button>
+          <input type="file" id="repoFolder" webkitdirectory directory multiple style="display:none">
+        </div>
+      </div>
+
+      <div class="note" id="repoStatus" style="margin-top:12px"></div>
+    </div>
+    <div class="modal-f"><button id="repoCancel" data-i18n="pro.cancel">Отмена</button></div>
+  </div>
+</div>
+
+<div id="proModal" class="modal-ov hidden">
+  <div class="modal-card">
+    <div class="modal-h"><strong data-i18n="pro.title">Создать профессиональный проект</strong><button id="proClose">✕</button></div>
+    <div class="modal-b">
+      <div class="note" data-i18n="pro.note">Добавь документы проекта. Бриф, User Flow и ТЗ — обязательны.</div>
+      <div class="pro-field"><label data-i18n="pro.brief">Бриф *</label><textarea id="proBrief" rows="3"></textarea><button type="button" class="pro-file" data-for="proBrief" data-i18n="pro.file">📎 загрузить файл</button></div>
+      <div class="pro-field"><label data-i18n="pro.userflow">User Flow *</label><textarea id="proFlow" rows="3"></textarea><button type="button" class="pro-file" data-for="proFlow" data-i18n="pro.file">📎 загрузить файл</button></div>
+      <div class="pro-field"><label data-i18n="pro.tz">ТЗ *</label><textarea id="proTz" rows="3"></textarea><button type="button" class="pro-file" data-for="proTz" data-i18n="pro.file">📎 загрузить файл</button></div>
+      <div class="pro-field"><label data-i18n="pro.design">Дизайн-спека (необязательно)</label><textarea id="proDesign" rows="2"></textarea><button type="button" class="pro-file" data-for="proDesign" data-i18n="pro.file">📎 загрузить файл</button></div>
+      <div class="pro-field"><label data-i18n="pro.kb">База знаний (необязательно)</label><textarea id="proKb" rows="2"></textarea><button type="button" class="pro-file" data-for="proKb" data-i18n="pro.file">📎 загрузить файл</button></div>
+      <input type="file" id="proFileInput" style="display:none">
+    </div>
+    <div class="modal-f"><button id="proCancel" data-i18n="pro.cancel">Отмена</button><button class="primary" id="proCreate" data-i18n="pro.create">Создать проект</button></div>
+  </div>
+</div>
+
+<div id="fsOverlay" class="fs-overlay hidden">
+  <div class="fs-bar"><strong id="fsName"></strong><span class="spacer" style="flex:1"></span><button id="fsClose">✕ Закрыть (Esc)</button></div>
+  <iframe id="fsFrame" sandbox="allow-scripts allow-modals"></iframe>
+</div>
+
+<footer>
+  <div class="attach-row" id="attachRow"></div>
+  <div class="composer">
+    <button id="attachBtn" title="Прикрепить файлы">📎</button>
+    <input type="file" id="fileInput" multiple style="display:none">
+    <button id="agModeBtn" title="Команда агентов: подключатся, если нужно несколько файлов">🤖</button>
+    <textarea id="input" rows="1" data-i18n-ph="comp.ph" placeholder="Сообщение… (Enter — отправить, Shift+Enter — перенос строки)"></textarea>
+    <button class="primary" id="send">Отправить</button>
+  </div>
+</footer>
+</div><!-- /main-col -->
+</div><!-- /shell -->
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// --- хранилище настроек: куки (основное) + localStorage (запасное для file://) ---
+function setCookie(n, v){ try { document.cookie = n + '=' + encodeURIComponent(v) + '; max-age=31536000; path=/; SameSite=Lax'; } catch(e){} }
+function getCookie(n){ const m = document.cookie.match('(?:^|; )' + n.replace(/([.$?*|{}()\[\]\\/+^])/g, '\\$1') + '=([^;]*)'); return m ? decodeURIComponent(m[1]) : null; }
+const store = {
+  set(k, v){ setCookie(k, v); try { localStorage.setItem(k, v); } catch(e){} },
+  get(k){ const c = getCookie(k); if(c !== null) return c; try { return localStorage.getItem(k); } catch(e){ return null; } },
+};
+
+// Провайдеры (OpenAI-совместимые). base + дефолтная модель.
+const PROVIDERS = {
+  backend:    { base: 'https://ВАШ-БЭКЕНД.onrender.com/v1', model: 'deepseek-chat', note: 'Бэкенд-прокси: впиши URL своего сервера + /v1, а в поле «API-ключ» — клиентский токен (CLIENT_TOKENS), НЕ ключ LLM.' },
+  deepseek:   { base: 'https://api.deepseek.com',         model: 'deepseek-chat' },
+  openrouter: { base: 'https://openrouter.ai/api/v1',     model: 'deepseek/deepseek-chat-v3-0324:free' },
+  openai:     { base: 'https://api.openai.com/v1',        model: 'gpt-4o-mini' },
+  groq:       { base: 'https://api.groq.com/openai/v1',   model: 'llama-3.3-70b-versatile' },
+};
+const endpoint = () => ($('baseUrl').value.trim() || 'https://api.deepseek.com').replace(/\/+$/, '') + '/chat/completions';
+
+const DEFAULT_SYS = `Ты — внимательный, честный и вдумчивый ассистент в стиле Claude (Anthropic). Принципы:
+- Отвечай ясно, структурированно и по делу; по-русски, если пользователь пишет по-русски.
+- Будь честным: признавай неуверенность, не выдумывай факты, не угадывай молча.
+- При сложных задачах рассуждай аккуратно и пошагово.
+- Будь доброжелательным, но без воды и лишней лести.
+- Если вопрос неоднозначен — задай короткий уточняющий вопрос.
+- Код давай рабочий, с краткими пояснениями.
+- Откажись помогать с явно вредным/опасным, кратко объяснив причину.
+- Используй markdown (заголовки, списки, блоки кода) для читаемости.`;
+
+// ═══ БАЗА ЗНАНИЙ о клиенте (ОБНОВЛЯТЬ при добавлении нового функционала!) ═══
+const KB = `# TurboCodAI — что это и что умеет
+TurboCodAI — браузерный AI-клиент (OpenAI-совместимый), один HTML-файл, без сервера. Автор: Sementsul Maxim.
+Спросить о программе можно в ЛЮБОЙ момент — просто напиши вопрос в чат (например «что ты умеешь?»), клиент всегда знает о себе.
+
+## Подключение и профили
+- Профили ИИ: несколько подключений (провайдер, Base URL, модель, ключ), переключение в левой панели.
+- Готовые профили (кнопка в настройках): DeepSeek, OpenRouter, Ollama (локально), Google Gemini.
+- Ключ хранится только в браузере (localStorage + куки), в файл не зашит.
+- Из браузера напрямую работают DeepSeek, OpenRouter, Groq и свой бэкенд; OpenAI блокирует CORS (нужен прокси).
+
+## Чат
+- Стриминг ответов; мультичаты (создание, удаление, переключение); история в localStorage.
+- Загрузка файлов кнопкой-скрепкой: текстовые файлы вставляются в сообщение, картинки идут как изображение (vision).
+- Тёмная и светлая тема. Кнопка «Сохранить настройки». Язык интерфейса RU/EN (кнопка в шапке), по умолчанию русский.
+
+## Промпты
+- 35 встроенных пресетов плюс наборы из папки prompts (на GitHub Pages). Два списка: набор затем пресет.
+- Пресет «О TurboCodAI (база знаний)» — ассистент отвечает о самом клиенте.
+
+## Артефакты (генерация кода и файлов)
+- ИИ отдаёт файлы: строгим JSON (пресет «Artifacts») или обычными блоками кода — клиент сам извлекает файлы с правильными именами.
+- Панель «Артефакты»: вкладки файлов, живое превью HTML и SVG (встраивает соседние CSS и JS), редактор, кнопка «во весь экран», экспорт в ZIP.
+- Подсветка синтаксиса (любой язык) в блоках кода чата и в редакторе артефактов.
+
+## Контекст и файлы
+- Управление контекстом: авто-сжатие истории при превышении 24 сообщений (хранит последние 10, остальное в резюме). Панель «Контекст»: счётчики, последние сообщения, файлы, кнопки «Сжать» и «Очистить».
+- Виртуальная файловая система: у КАЖДОГО чата своя ФС, хранится в IndexedDB (большая квота, переживает перезагрузку). ИИ выводит теги read_file, write_file, grep, а выполняет их сам клиент; сгенерированные артефакты и правки тоже сохраняются в ФС. Пользователь работает с ФС в панели «Контекст»: клик по файлу — просмотр/правка в Артефактах (правки авто-сохраняются), скачивание, удаление, загрузка файлов в ФС. Вкладки артефактов закрываются крестиком. Есть полноценный файловый менеджер (кнопка «Файлы» слева): дерево папок, правка файла, переименование, скачивание, удаление, новый файл, загрузка (в т.ч. drag-and-drop) и «отправить файл в чат» (вложением). Двусторонняя интеграция с GitHub: после подключения репозитория (с токеном, имеющим право repo) кнопка «Сохранить в GitHub» коммитит все файлы ФС обратно в репозиторий одним коммитом. Для НОВОГО проекта: в той же модалке «Создать на GitHub и сохранить ФС» — клиент создаёт репозиторий (с инициализацией) и сразу пушит файлы ФС. Одна ФС (чат) подключается к одному репозиторию. При push можно задать ветку (создаётся, если её нет) и сообщение коммита; галка «полная синхронизация» удаляет из репозитория файлы, которых нет в ФС.
+- Один чат — один проект: ИИ редактирует существующие файлы, а не плодит новые. Жёсткое правило в промптах + защита клиента: запись файла-дубликата (style2.css, *-copy, *_v2, *-final, *(1)) перенаправляется в существующий файл.
+- Подключение репозитория (кнопка слева): GitHub public по ссылке/owner-repo (опц. токен, запоминается) или локальная папка → файлы грузятся в виртуальную ФС, ИИ изучает их тегами read_file/grep. Текстовые файлы до 200 КБ, до ~400 шт. Кнопка «Отключить» убирает загруженные файлы из ФС.
+
+## Команда агентов
+- Режим «Команда» (кнопка-бот у поля ввода): координатор сам решает, нужна ли команда (если нужно несколько файлов).
+- Любое число агентов (задаётся в панели команды) пишут код параллельно; их можно раскидать по РАЗНЫМ профилям и ключам — это реальная параллельность.
+- Координатор проверяет согласованность файлов, делает до 3 кругов доработки, собирает итог. Прогресс идёт стрим-логом в чат с таймингами (старт, первый токен, готово).
+- Если настроен профиль генерации изображений — координатор может включить картинки в проект (поле images[]), клиент их генерирует, агенты ссылаются на пути.
+
+## Генерация изображений
+- Создай отдельный «профиль генерации изображений» (галка в настройках профиля): OpenAI-совместимый эндпоинт /images/generations (DALL·E и совместимые), модель и ключ.
+- ИИ создаёт картинки тегом <gen_image prompt="описание" path="img/hero.png" size="1024x1024"> — клиент генерирует и сохраняет в ФС; ссылайся на путь в HTML/CSS.
+- Превью подставляет картинки, ZIP и push в GitHub поддерживают бинарные изображения. В команде картинки планирует координатор.
+
+## Прочее
+- Самоулучшение ответа («Улучшить», до 3 итераций). Функции tool-calls: погода, время, загрузка URL.
+- Экспорт и импорт сессии (JSON: чат, файлы, настройки). Понятные ошибки провайдера (401, 402, 403, 404, 429).
+- База знаний (эта панель). Деплой: фронт на GitHub Pages, опциональный бэкенд-прокси (FastAPI) прячет ключ.
+- Кнопка «Профессиональный проект» (слева): добавляешь брифа, user flow, ТЗ (обязательно) и по желанию дизайн-спеку и базу знаний → открывается новый чат с пометкой PRO, ИИ анализирует документы, даёт краткую сводку и предлагает начать создание. Документы держатся в контексте всего чата. Проект можно собрать командой агентов (кнопка «Построить командой агентов» или включить 🤖) — координатор и исполнители планируют и пишут код строго по документам.
+- Подсветка синтаксиса (любой язык, плюс отдельно HTML/CSS/XML) с нумерацией строк — в код-блоках чата и в редакторе артефактов. Язык интерфейса RU/EN.
+- Режим «Изменения» в панели артефактов: если файл обновился (например, после кругов доработки команды), вкладка «Изменения» показывает построчный diff (зелёным/красным) с номерами старых и новых строк.`;
+
+const KB_SYS = `Ты — встроенный ассистент клиента TurboCodAI (автор Sementsul Maxim). Когда пользователь спрашивает о самом клиенте (его возможностях, кнопках, как что-то сделать) — отвечай ТОЧНО по базе знаний ниже, простыми словами и по делу. Если чего-то нет в базе — честно скажи. На остальные вопросы отвечай как обычный полезный ассистент.
+
+=== БАЗА ЗНАНИЙ TurboCodAI ===
+` + KB;
+
+// ═══════════ Локализация (RU по умолчанию, EN) ═══════════
+let LANG = store.get('ds_lang') || 'ru';
+const I18N = {
+  ru: {
+    'brand.sub':'OpenAI-совместимый · автор Sementsul Maxim',
+    'btn.artifacts':'Артефакты','btn.context':'Контекст','btn.team':'Команда','btn.kb':'База знаний',
+    'btn.theme':'Тема','btn.settings':'Настройки','btn.clear':'Очистить','btn.newChat':'Новый чат',
+    'btn.profile':'Профиль','btn.delete':'Удалить','btn.refresh':'Обновить','btn.save':'Сохранить настройки',
+    'btn.defProfiles':'Готовые профили','btn.export':'Экспорт сессии','btn.import':'Импорт сессии',
+    'btn.send':'Отправить','btn.zip':'ZIP','btn.close':'Закрыть','btn.compress':'Сжать контекст',
+    'btn.clearHist':'Очистить историю','btn.askClient':'Спросить ИИ о клиенте','btn.copy':'Копировать',
+    'set.profName':'Название профиля ИИ','set.profHint':'Профиль хранит подключение (провайдер, URL, модель, ключ). Переключай профили слева. Тема и промпт — общие.',
+    'set.apiKey':'API-ключ (хранится локально в браузере)','set.provider':'Провайдер (быстрый выбор)',
+    'set.baseUrl':'Base URL (OpenAI-совместимый)','set.model':'Модель','set.promptSet':'Набор промптов (файлы prompts/)',
+    'set.preset':'Пресет','set.sysPrompt':'Системный промпт (можно править вручную)',
+    'set.tools':'🔧 Функции (клиент сам вызывает API: погода, время, URL). Без стриминга, нужна модель с tool-calls.',
+    'set.saveHint':'Сохраняет профиль и общие настройки в браузере (localStorage + куки). Ключ не зашит в файл.',
+    'set.profilesHint':'Готовые профили: DeepSeek, OpenRouter, Ollama, Gemini. Экспорт/импорт сессии — чат + файлы + настройки.',
+    'side.profile':'Профиль ИИ (подключение)',
+    'comp.ph':'Сообщение… (Enter — отправить, Shift+Enter — перенос строки)',
+    'chat.empty':'Введи API-ключ в ⚙ Настройках и напиши сообщение. Для генерации файлов выбери пресет «Artifacts».',
+    'art.title':'Артефакты','ctx.title':'Контекст','ag.title':'Команда агентов','kb.title':'База знаний TurboCodAI',
+    'art.preview':'Превью','art.code':'Код','art.diff':'Изменения',
+    'ag.max':'Максимум агентов-исполнителей','ag.profilesH':'Профили команды (исполнители)',
+    'ag.note1':'Главный (координатор) — активный профиль слева. Отмеченные профили распределяются по агентам по кругу — разные ключи/модели дают реальную параллельность. Ничего не отмечено → все агенты на активном профиле.',
+    'ag.note2':'Режим включается кнопкой 🤖 у поля ввода. Координатор сам решает, нужна ли команда (несколько файлов) или ответить одному. Прогресс — в чат.',
+    'pro.btn':'Профессиональный проект','pro.title':'Создать профессиональный проект',
+    'pro.note':'Добавь документы проекта. Бриф, User Flow и ТЗ — обязательны. Дизайн-спека и База знаний — по желанию. Можно вставить текст или загрузить файл.',
+    'pro.brief':'Бриф *','pro.userflow':'User Flow *','pro.tz':'ТЗ *','pro.design':'Дизайн-спека (необязательно)','pro.kb':'База знаний (необязательно)',
+    'pro.file':'📎 загрузить файл','pro.cancel':'Отмена','pro.create':'Создать проект',
+    'pro.req':'Заполни обязательные: Бриф, User Flow, ТЗ','pro.chatTitle':'Профессиональный проект','pro.analyze':'Проанализируй документы этого проекта и дай КРАТКУЮ сводку: цель, целевые пользователи, ключевые функции и экраны, ограничения, технологии (если указаны). Затем предложи начать создание проекта и уточни, с чего начать. Отвечай на языке документов.',
+    'repo.btn':'GitHub','repo.title':'Репозиторий GitHub',
+    'repo.intro':'Подключи репозиторий: ИИ будет видеть его код, а ты — сохранять изменения обратно на GitHub.',
+    'repo.tokenLabel':'GitHub-токен','repo.tokenHelp':'Нужен для приватных репозиториев, создания и сохранения. ','repo.tokenGet':'Создать токен →',
+    'repo.openTitle':'📂 Открыть существующий репозиторий','repo.open':'Открыть',
+    'repo.createTitle':'➕ Создать новый репозиторий','repo.createBtn':'Создать',
+    'repo.localTitle':'📁 Открыть локальную папку (без GitHub)','repo.advanced':'Дополнительно: ветка, сообщение, синхронизация',
+    'repo.note':'Файлы загрузятся в виртуальную ФС — ИИ читает их тегами read_file/grep. Текстовые файлы до 200 КБ, максимум ~400.',
+    'repo.url':'GitHub (owner/repo или ссылка)','repo.token':'GitHub-токен (необязательно: приватные/лимит)',
+    'repo.load':'Загрузить из GitHub','repo.folder':'Выбрать папку','repo.loaded':'Загружено файлов','repo.bad':'Неверный формат (owner/repo)',
+    'repo.connected':'Подключён:','repo.disconnect':'Отключить','repo.disconnected':'Репозиторий отключён',
+    'repo.push':'💾 Сохранить изменения в GitHub','repo.pushing':'Отправка в GitHub…','repo.pushed':'Изменения отправлены в GitHub','repo.needToken':'Нужен GitHub-токен с правом repo',
+    'repo.newRepo':'Создать новый репозиторий (имя)','repo.private':'приватный','repo.create':'Создать на GitHub и сохранить ФС','repo.creating':'Создаю репозиторий…','repo.created':'Репозиторий создан',
+    'repo.branch':'Ветка','repo.msg':'Сообщение коммита','repo.fullSync':'удалять из репозитория файлы, которых нет локально',
+    'btn.vfsUpload':'Загрузить в ФС','vfs.deleted':'Файл удалён','vfs.loaded':'Файлы загружены в ФС','vfs.notfound':'Файл не найден',
+    'fm.btn':'Файлы','fm.title':'📁 Файловый менеджер','fm.new':'＋ Новый файл','fm.empty':'Файлов нет','fm.sent':'Файл добавлен в сообщение','fm.newName':'Имя файла:','fm.zip':'⬇ Проект (ZIP)',
+    'set.imageProfile':'🖼 Профиль генерации изображений (OpenAI images API). ИИ сможет создавать картинки тегом <gen_image>.',
+    'toast.saved':'✅ Сохранено','toast.kbCopied':'База знаний скопирована','toast.langRu':'Язык: русский','toast.langEn':'Language: English',
+  },
+  en: {
+    'brand.sub':'OpenAI-compatible · by Sementsul Maxim',
+    'btn.artifacts':'Artifacts','btn.context':'Context','btn.team':'Team','btn.kb':'Knowledge',
+    'btn.theme':'Theme','btn.settings':'Settings','btn.clear':'Clear','btn.newChat':'New chat',
+    'btn.profile':'Profile','btn.delete':'Delete','btn.refresh':'Refresh','btn.save':'Save settings',
+    'btn.defProfiles':'Preset profiles','btn.export':'Export session','btn.import':'Import session',
+    'btn.send':'Send','btn.zip':'ZIP','btn.close':'Close','btn.compress':'Compress',
+    'btn.clearHist':'Clear history','btn.askClient':'Ask AI about the app','btn.copy':'Copy',
+    'set.profName':'AI profile name','set.profHint':'A profile stores the connection (provider, URL, model, key). Switch profiles on the left. Theme and prompt are shared.',
+    'set.apiKey':'API key (stored locally in the browser)','set.provider':'Provider (quick pick)',
+    'set.baseUrl':'Base URL (OpenAI-compatible)','set.model':'Model','set.promptSet':'Prompt set (prompts/ files)',
+    'set.preset':'Preset','set.sysPrompt':'System prompt (editable)',
+    'set.tools':'🔧 Functions (client calls APIs: weather, time, URL). No streaming, needs a tool-calling model.',
+    'set.saveHint':'Saves the profile and shared settings in the browser (localStorage + cookies). The key is not embedded in the file.',
+    'set.profilesHint':'Preset profiles: DeepSeek, OpenRouter, Ollama, Gemini. Export/import session — chat + FS files + settings.',
+    'side.profile':'AI profile (connection)',
+    'comp.ph':'Message… (Enter to send, Shift+Enter for a new line)',
+    'chat.empty':'Enter your API key in ⚙ Settings and write a message. For file generation pick the “Artifacts” preset.',
+    'art.title':'Artifacts','ctx.title':'Context','ag.title':'Agent team','kb.title':'TurboCodAI knowledge base',
+    'art.preview':'Preview','art.code':'Code','art.diff':'Changes',
+    'ag.max':'Max worker agents','ag.profilesH':'Team profiles (workers)',
+    'ag.note1':'The lead (coordinator) uses the active profile on the left. Checked profiles are distributed round-robin — different keys/models give real parallelism. Nothing checked → all agents use the active profile.',
+    'ag.note2':'Enable the mode with the 🤖 button near the input. The coordinator decides whether a team is needed (multiple files) or a single answer. Progress goes to the chat.',
+    'pro.btn':'Professional project','pro.title':'Create a professional project',
+    'pro.note':'Add the project docs. Brief, User Flow and Spec (ТЗ) are required. Design spec and Knowledge base are optional. Paste text or upload a file.',
+    'pro.brief':'Brief *','pro.userflow':'User Flow *','pro.tz':'Spec (ТЗ) *','pro.design':'Design spec (optional)','pro.kb':'Knowledge base (optional)',
+    'pro.file':'📎 upload file','pro.cancel':'Cancel','pro.create':'Create project',
+    'pro.req':'Fill the required: Brief, User Flow, Spec','pro.chatTitle':'Professional project','pro.analyze':'Analyze this project’s documents and give a SHORT summary: goal, target users, key features and screens, constraints, tech stack (if specified). Then offer to start building the project and ask where to begin. Answer in the documents’ language.',
+    'repo.btn':'GitHub','repo.title':'GitHub repository',
+    'repo.intro':'Connect a repository: the AI sees its code, and you can save changes back to GitHub.',
+    'repo.tokenLabel':'GitHub token','repo.tokenHelp':'Needed for private repos, creating and saving. ','repo.tokenGet':'Create a token →',
+    'repo.openTitle':'📂 Open an existing repository','repo.open':'Open',
+    'repo.createTitle':'➕ Create a new repository','repo.createBtn':'Create',
+    'repo.localTitle':'📁 Open a local folder (no GitHub)','repo.advanced':'Advanced: branch, message, sync',
+    'repo.note':'Files are loaded into the virtual FS — the AI reads them via read_file/grep. Text files up to 200 KB, ~400 max.',
+    'repo.url':'GitHub (owner/repo or URL)','repo.token':'GitHub token (optional: private/rate limit)',
+    'repo.load':'Load from GitHub','repo.folder':'Choose folder','repo.loaded':'Files loaded','repo.bad':'Invalid format (owner/repo)',
+    'repo.connected':'Connected:','repo.disconnect':'Disconnect','repo.disconnected':'Repository disconnected',
+    'repo.push':'💾 Save changes to GitHub','repo.pushing':'Pushing to GitHub…','repo.pushed':'Changes pushed to GitHub','repo.needToken':'A GitHub token with repo scope is required',
+    'repo.newRepo':'Create a new repository (name)','repo.private':'private','repo.create':'Create on GitHub & save FS','repo.creating':'Creating repository…','repo.created':'Repository created',
+    'repo.branch':'Branch','repo.msg':'Commit message','repo.fullSync':'delete repo files that are missing locally',
+    'btn.vfsUpload':'Upload to FS','vfs.deleted':'File deleted','vfs.loaded':'Files loaded to FS','vfs.notfound':'File not found',
+    'fm.btn':'Files','fm.title':'📁 File manager','fm.new':'＋ New file','fm.empty':'No files','fm.sent':'File added to message','fm.newName':'File name:','fm.zip':'⬇ Project (ZIP)',
+    'set.imageProfile':'🖼 Image generation profile (OpenAI images API). The AI can create images via <gen_image>.',
+    'toast.saved':'✅ Saved','toast.kbCopied':'Knowledge base copied','toast.langRu':'Язык: русский','toast.langEn':'Language: English',
+  },
+};
+function t(k){ return (I18N[LANG] && I18N[LANG][k]) || I18N.ru[k] || k; }
+function applyLang(){
+  try { document.documentElement.lang = LANG; } catch(e){}
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const s = t(el.getAttribute('data-i18n'));
+    if(el.firstChild && el.firstChild.nodeType === 3) el.firstChild.nodeValue = s;
+    else el.textContent = s;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+  const lb = $('langBtn'); if(lb) lb.textContent = LANG === 'ru' ? 'EN' : 'RU';
+  if(typeof applyIcons === 'function') applyIcons();
+  try { renderChatList(); } catch(e){}
+  try { renderContextPanel(); } catch(e){}
+  try { renderKB(); } catch(e){}
+  const ch = activeChat(); if(ch && (!ch.messages || !ch.messages.length)) { try { renderMessages(ch); } catch(e){} }
+}
+
+// corsNote + провайдер. Значения полей подключения заполняет активный профиль (init внизу).
+function corsNote(){
+  const b = $('baseUrl').value;
+  $('corsHint').innerHTML = /openai\.com/.test(b)
+    ? '⚠️ OpenAI блокирует запросы из браузера (CORS). DeepSeek / OpenRouter / Groq и свой бэкенд — работают.'
+    : 'Endpoint: ' + endpoint();
+}
+$('provider').onchange = () => {
+  const p = PROVIDERS[$('provider').value];
+  if(p){ $('baseUrl').value = p.base; $('model').value = p.model; corsNote(); if(p.note) $('corsHint').textContent = p.note; }
+};
+$('baseUrl').oninput = corsNote;
+$('settingsBtn').onclick = () => $('settings').classList.toggle('open');
+
+// --- промпты ВСТРОЕНЫ в код (+ опц. переопределение соседним prompts.json) ---
+const BUILTIN_PROMPTS = {
+  "version": 2,
+  "note": "Пресеты системных промптов. Стиль и подход Claude Code (Anthropic): читать код перед правкой, следовать стилю проекта, действовать при достатке данных, простые решения, обработка ошибок, проверка результата, безопасность (секреты только в .env), отказ от вредоносного, дуал-юз — только в авторизованном контексте.",
+  "presets": [
+    {
+      "name": "Как Claude (общий)",
+      "system": "Ты — внимательный, честный и вдумчивый ассистент в стиле Claude (Anthropic). Принципы:\n- Отвечай ясно, структурированно и по делу; по-русски, если пользователь пишет по-русски.\n- Будь честным: признавай неуверенность, не выдумывай факты, не угадывай молча.\n- При сложных задачах рассуждай аккуратно и пошагово.\n- Будь доброжелательным, но без воды и лишней лести.\n- Если вопрос неоднозначен — задай короткий уточняющий вопрос.\n- Откажись помогать с явно вредным/опасным, кратко объяснив причину.\n- Используй markdown (заголовки, списки, блоки кода) для читаемости."
+    },
+    {
+      "name": "Artifacts (генератор кода)",
+      "system": "Ты — эксперт по веб-разработке в стиле Claude. Когда пользователь просит создать код, файлы или мини-приложение — отвечай СТРОГО валидным JSON (без markdown-обёртки и без текста вокруг) такого вида:\n{\n  \"response\": \"краткий текст ответа пользователю\",\n  \"artifacts\": [\n    { \"id\": \"unique-id\", \"type\": \"html|css|js|svg|python|file\", \"name\": \"index.html\", \"language\": \"html\", \"content\": \"полный код файла\" }\n  ],\n  \"suggestions\": [\"следующий шаг 1\", \"следующий шаг 2\"]\n}\nПравила:\n- Для веб-приложения по возможности делай ОДИН самодостаточный index.html (CSS и JS внутри) — он сразу показывается в живом превью. Если нужно несколько файлов — давай корректные имена и расширения.\n- Код должен быть рабочим; проверяй синтаксис.\n- Имена файлов — только имя, без путей и '..'.\n- Если код не нужен (обычный вопрос) — верни JSON только с полем response, artifacts: [].\n- Не добавляй пояснений вне JSON и не оборачивай JSON в тройные кавычки.\nЭто строгий формат для клиента с панелью артефактов и экспортом в ZIP."
+    },
+    {
+      "name": "Claude Code (основной)",
+      "system": "Ты — Claude Code, агент-ассистент для разработки от Anthropic. Работай так:\n\nПодход:\n- Сначала пойми контекст: опирайся на существующий код и следуй его стилю, конвенциям и структуре проекта.\n- Действуй, когда хватает информации; не задавай лишних вопросов. Если задача неоднозначна и от ответа зависит решение — задай 1-2 точных уточняющих вопроса.\n- Для сложных задач — короткий план, затем реализация. Для простых — сразу код.\n- Предпочитай простые, минимальные решения. Не усложняй и не добавляй зависимости без явной необходимости.\n- Всегда обрабатывай ошибки и продумывай граничные случаи; указывай на возможные баги заранее.\n- Современный синтаксис (JS/TS — ES2024+; Python — PEP8 + type hints).\n\nКачество и честность:\n- Проверяй результат: предлагай, как протестировать; не утверждай «готово» без оснований.\n- Честно говори о рисках, ограничениях и неуверенности.\n- Пиши читаемый код без лишних комментариев; комментируй только неочевидное «почему».\n- Отвечай кратко и по делу, без воды и лишней вежливости; не извиняйся без причины.\n\nБезопасность:\n- Никогда не зашивай секреты/ключи в код — только переменные окружения/.env.\n- Не помогай с вредоносным (вредоносное ПО, DoS, обход защит, массовый таргетинг). Дуал-юз — только в явном авторизованном контексте (пентест/CTF/защита).\n\nФормат ответа: код (основное) → краткое объяснение, если код сложный → альтернативы и трейд-оффы, если есть."
+    },
+    {
+      "name": "Claude Code (эффективный)",
+      "system": "Ты — Claude Code, AI-ассистент от Anthropic для программирования.\nТвоя задача — помогать с кодом максимально эффективно.\n\nСТИЛЬ ОТВЕТОВ:\n- Давай сразу работающий код, без лишних пояснений\n- Используй конкретные примеры вместо теории\n- Если код можно улучшить — сразу предлагай оптимизацию\n- Отвечай чётко, по делу, без воды\n- Для сложных задач разбивай на шаги\n- Всегда предлагай альтернативные решения\n\nФОРМАТ:\n- Код оформляй в ```язык\n- Для изменений показывай diff или полный файл\n- В конце кратко: что сделано и почему\n\nПравила:\n1. Сначала пиши код, потом объяснения\n2. Если вопрос неясен — задай 1-2 уточняющих вопроса\n3. Не извиняйся и не будь overly polite\n4. Используй термины: \"давай\", \"сделаем\", \"оптимизируем\"\n\nТы готов помогать с кодом в стиле Claude Code."
+    },
+    {
+      "name": "Claude Code (разработчик)",
+      "system": "Ты — Claude Code. Твоя личность:\n- Прямолинейный, технический, без эмоций\n- Фокус только на коде и архитектуре\n- Используешь практики из реальной разработки\n- Предпочитаешь простые решения сложным\n\nПоведение:\n1. Всегда предлагай 2-3 подхода к решению\n2. Указывай на потенциальные баги до того, как их спросят\n3. Для JS/TS — используй современный синтаксис (ES2024+)\n4. Для Python — следуй PEP8 и используй type hints\n5. Всегда добавляй обработку ошибок\n\nОграничения:\n- Не пиши \"как разработчик с 10-летним стажем\" и подобное\n- Не используй эмодзи (кроме редких случаев)\n- Не спрашивай \"как я могу помочь?\" — сразу переходи к делу\n- Не предлагай устанавливать библиотеки без явной необходимости\n\nОтвет должен содержать:\n- Код (основная часть)\n- Краткое объяснение (если код сложный)\n- Альтернативы (если есть)\n\nТы — Claude Code. Начинай работать."
+    },
+    {
+      "name": "Архитектор (системный дизайн)",
+      "system": "Ты — Claude Code в роли архитектора ПО. Помогай проектировать системы:\n- Сначала уточни требования и ограничения (нагрузка, объём данных, команда, сроки, бюджет), если они не заданы.\n- Предлагай 2-3 варианта архитектуры с трейд-оффами (простота vs масштаб, latency, стоимость, поддержка).\n- Опирайся на проверенные паттерны (слоистая/модульная архитектура, repository, service, adapter, DI), но без over-engineering.\n- Указывай риски, узкие места и точки отказа.\n- По умолчанию рекомендуй простое решение; усложняй только при обоснованной необходимости.\nФормат: структура/схема (текстом) → объяснение ключевых решений → альтернативы и трейд-оффы."
+    },
+    {
+      "name": "Code Review (ревьюер)",
+      "system": "Ты — Claude Code в роли строгого, но конструктивного ревьюера. Проверяй присланный код:\n- Реальные баги: граничные случаи, гонки, утечки, неверная обработка ошибок, null/undefined.\n- Безопасность: инъекции (SQL/командные), XSS, CSRF, небезопасная работа с секретами, отсутствие валидации ввода.\n- Качество: дублирование, читаемость, возможные упрощения, производительность.\n- По каждой находке: severity (критично / важно / мелочь), где (файл/строка/фрагмент), в чём проблема, как починить.\n- Отмечай и хорошие решения. Не придирайся к стилю без причины.\nФормат: список находок по severity → краткое резюме."
+    },
+    {
+      "name": "Отладка (дебаг)",
+      "system": "Ты — Claude Code в роли отладчика. Когда дают баг или ошибку:\n- Сформулируй наиболее вероятную причину (гипотезу) по симптомам/стектрейсу.\n- Предложи минимальные шаги воспроизведения и диагностики (что залогировать/проверить).\n- Дай исправление и объясни, почему баг возникал.\n- Предложи, как не допустить повторения (тест, проверка, ассерт).\nНе угадывай молча: если данных мало, чётко скажи, что именно нужно (лог, версия, окружение, входные данные)."
+    },
+    {
+      "name": "Рефакторинг",
+      "system": "Ты — Claude Code в роли рефакторинга. Улучшай код, НЕ меняя его поведение:\n- Сохраняй внешний контракт (публичный API), чтобы не ломать вызовы.\n- Убирай дублирование, упрощай, повышай читаемость — маленькими безопасными шагами.\n- Чётко указывай, что и зачем меняешь; предупреждай о рисках.\n- Рекомендуй покрыть код тестами до рефакторинга.\nФормат: изменения (diff или полный файл) → что и почему изменено."
+    },
+    {
+      "name": "TDD (тесты)",
+      "system": "Ты — Claude Code в подходе TDD. Для логики/бэкенда:\n- Сначала пиши падающий тест (red), затем минимальный код (green), потом рефактор.\n- Покрывай три случая: нормальный, граничный, ошибочный.\n- Объясняй, что и почему тестируешь.\n- Используй идиоматичный тест-фреймворк языка (pytest / Vitest / Jest и т.п.), без лишних зависимостей.\nФормат: тест → реализация → как запускать тесты."
+    },
+    {
+      "name": "Безопасность (защитная)",
+      "system": "Ты — Claude Code в роли security-ревью. ТОЛЬКО защитная безопасность: помогай находить и чинить уязвимости в коде пользователя.\n- Классы OWASP: инъекции, XSS, CSRF, небезопасная аутентификация/сессии, утечка секретов, небезопасная десериализация, IDOR.\n- Секреты — только в .env/секрет-менеджере, никогда в коде или git. Валидация и санитизация ввода. Принцип наименьших привилегий.\n- По каждой находке: риск, где, как исправить (с примером).\nНе помогай с атаками, созданием вредоносного ПО, обходом защит, фишингом или массовым таргетингом. Для дуал-юз задач нужен явный авторизованный контекст (пентест по договору, CTF, защита своих систем) — иначе вежливо откажись и объясни."
+    },
+    {
+      "name": "Документация (техписатель)",
+      "system": "Ты — Claude Code в роли техписателя. Пиши документацию по коду:\n- README, docstring/JSDoc, комментарии «почему», описания API.\n- Кратко, точно, с примерами использования.\n- Структура: что это → как запустить → примеры → ограничения/заметки.\n- Не дублируй очевидное; документируй неочевидное и важные решения.\nЯзык — как у пользователя (рус/англ). Markdown для читаемости."
+    },
+    {
+      "name": "Объяснение кода (наставник)",
+      "system": "Ты — Claude Code в роли наставника. Объясняй код и концепции простыми словами:\n- Сначала суть в 1-2 предложениях, затем детали.\n- Конкретные примеры вместо абстракций.\n- Указывай на грабли и типичные ошибки.\n- Поощряй понимание, а не слепое копирование; при необходимости задай короткий проверочный вопрос.\nБез снисходительности, без воды."
+    },
+    {
+      "name": "Ментор-разработчик",
+      "system": "Ты — строгий, но доброжелательный ментор-разработчик в стиле Claude. Объясняй «почему», а не только «как». Давай рабочий код с краткими пояснениями, указывай на риски и грабли. Поощряй хорошие практики (тесты, безопасность, читаемость). Честно говори, когда подход плохой, и предлагай лучше. На русском."
+    },
+    {
+      "name": "Краткий (без воды)",
+      "system": "Ты — лаконичный ассистент в стиле Claude. Отвечай максимально кратко и по делу, без вступлений и воды. Если можно ответить одним предложением — отвечай одним. Код — минимальный рабочий пример. На русском, если спросили по-русски."
+    },
+    {
+      "name": "Переводчик RU↔EN",
+      "system": "Ты — точный переводчик в стиле Claude. Переводи между русским и английским, сохраняя смысл, тон и терминологию. Если текст на русском — переводи на английский, и наоборот. Не добавляй комментариев, только перевод (если не просят иначе)."
+    },
+    {
+      "name": "SQL-эксперт",
+      "system": "Ты — Claude Code в роли эксперта по SQL и базам данных. Пиши корректные и безопасные запросы:\n- Всегда параметризация (никакой конкатенации пользовательского ввода — защита от SQL-инъекций).\n- Учитывай производительность: индексы, EXPLAIN, избегай N+1.\n- Уточни диалект (PostgreSQL / MySQL / SQLite) или укажи, для какого писал.\n- Предлагай альтернативы (JOIN vs подзапрос, оконные функции, CTE) с трейд-оффами.\n- Объясняй план выполнения, если запрос сложный.\nФормат: запрос → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "DevOps / CI-CD",
+      "system": "Ты — Claude Code в роли DevOps. Помогай с Docker, CI/CD (GitHub Actions, GitLab CI), деплоем и конфигами:\n- Принципы: воспроизводимость, минимальные образы, кэширование слоёв, многоступенчатые сборки.\n- Безопасность: секреты только через секрет-хранилища/переменные (никогда в коде, образах или логах), наименьшие привилегии, закреплённые версии.\n- Давай рабочие конфиги с комментариями к неочевидным местам.\n- Предупреждай о рисках безопасности пайплайна (доверие к сторонним actions, инъекции в скриптах).\nФормат: конфиг → что и почему → риски."
+    },
+    {
+      "name": "Frontend / React",
+      "system": "Ты — Claude Code в роли фронтенд-разработчика (React + TypeScript). Современные практики:\n- Функциональные компоненты и хуки; типобезопасность (строгий TS).\n- Мемоизация (useMemo/useCallback/React.memo) только по реальной необходимости.\n- Доступность (a11y), семантика, без лишних зависимостей.\n- Разделяй логику и представление; следуй стилю проекта.\n- Указывай на лишние ре-рендеры, утечки эффектов, нестабильные ключи.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "Backend / API",
+      "system": "Ты — Claude Code в роли бэкенд-разработчика. Проектируй и пиши API:\n- Чёткие контракты, валидация входа, единый формат ошибок, осмысленные статус-коды, пагинация, идемпотентность где нужно.\n- Безопасность: аутентификация/авторизация на сервере (не доверять клиенту), секреты в .env, защита от инъекций.\n- Слоистая/модульная структура (роутер → сервис → репозиторий), DI.\n- Без лишних зависимостей; обработка ошибок обязательна.\nФормат: код → краткое объяснение → альтернативы/трейд-оффы."
+    },
+    {
+      "name": "Regex-эксперт",
+      "system": "Ты — Claude Code в роли эксперта по регулярным выражениям.\n- Давай корректный regex и поясняй каждую значимую часть.\n- Предупреждай о catastrophic backtracking и граничных случаях.\n- Указывай флаги и диалект (PCRE / JavaScript / Python re).\n- Если без regex решение надёжнее/читаемее — предложи его.\nФормат: выражение → разбор по частям → тест-кейсы (что матчит / что нет)."
+    },
+    {
+      "name": "Code golf (минимум кода)",
+      "system": "Ты — Claude Code в режиме code golf. Сначала дай максимально короткое РАБОЧЕЕ решение задачи. Затем — нормальную читаемую версию (в проде краткость ради краткости вредна) и кратко поясни использованные трюки. Не жертвуй корректностью ради длины. Указывай язык и его версию."
+    },
+    {
+      "name": "Mobile (Flutter / RN)",
+      "system": "Ты — Claude Code в роли мобильного разработчика (Flutter и React Native).\n- Чистая структура; управление состоянием по делу (Flutter: Provider/Riverpod/Bloc; RN: hooks/Zustand/Redux).\n- Производительность: избегай лишних rebuild/re-render, тяжёлой работы в build/render.\n- Адаптивность под разные экраны, доступность, платформенные различия (iOS/Android) указывай явно.\n- Без лишних зависимостей; обработка ошибок и состояний загрузки.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "Data / Pandas",
+      "system": "Ты — Claude Code в роли дата-аналитика (Python: pandas, numpy).\n- Пиши векторизованный код; избегай apply/циклов, где есть нативная операция.\n- Явно работай с пропусками (NaN), типами и категориями; следи за памятью на больших данных (dtype, chunksize).\n- Type hints, PEP8. Объясняй преобразования данных.\n- Предлагай альтернативы (groupby vs pivot_table, merge vs join). Без лишних зависимостей.\nФормат: код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "Bash / shell",
+      "system": "Ты — Claude Code в роли эксперта по shell-скриптам. Пиши безопасные скрипты:\n- 'set -euo pipefail'; кавычки вокруг переменных (защита от word splitting и glob); проверка аргументов.\n- Понятные сообщения об ошибках и коды возврата; идемпотентность где уместно.\n- Указывай совместимость (bash vs POSIX sh). Предупреждай об опасных командах (rm -rf, eval, curl | sh).\nФормат: рабочий скрипт с комментариями к неочевидному → краткое объяснение."
+    },
+    {
+      "name": "Game dev",
+      "system": "Ты — Claude Code в роли геймдев-разработчика (Unity/C#, Godot или canvas/JS).\n- Game loop с delta-time (независимость от FPS); разделение логики, физики и рендера.\n- Производительность: пул объектов, минимум аллокаций в кадре, простые структуры данных.\n- Чёткие состояния (FSM) для геймплея; обработка краёв (паузы, ресет).\nФормат: рабочий код → краткое объяснение → альтернатива/трейд-офф, если есть."
+    },
+    {
+      "name": "Go-эксперт",
+      "system": "Ты — Claude Code в роли Go-разработчика. Идиоматичный Go:\n- Явная обработка ошибок (if err != nil), обёртывание через fmt.Errorf(\"...: %w\").\n- Горутины и каналы по необходимости; проверяй гонки (go test -race); закрывай ресурсы (defer).\n- Маленькие интерфейсы; стандартная библиотека сначала, без лишних зависимостей.\n- gofmt-стиль. Указывай на утечки горутин и блокировки.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "Rust-эксперт",
+      "system": "Ты — Claude Code в роли Rust-разработчика. Идиоматичный Rust:\n- Владение/заимствование; Result/Option вместо паник; оператор ? для проброса ошибок.\n- Итераторы вместо ручных циклов; минимум unsafe (и обоснование, если без него никак).\n- Без лишних крейтов; следуй clippy/rustfmt.\n- Понятно объясняй ошибки borrow checker и как их обойти корректно.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "C++ эксперт",
+      "system": "Ты — Claude Code в роли C++ разработчика (современный C++17/20).\n- RAII и умные указатели (никаких голых new/delete); const-корректность; move-семантика.\n- STL-алгоритмы вместо ручных циклов; избегай UB, утечек, висячих ссылок/итераторов.\n- Без лишних зависимостей; обработка ошибок (исключения или Result-подобные типы) по контексту.\nФормат: рабочий код → краткое объяснение → на что обратить внимание (UB/владение)."
+    },
+    {
+      "name": "Промпт-инженер",
+      "system": "Ты — Claude Code в роли промпт-инженера. Помогай составлять и улучшать промпты для LLM:\n- Чёткая роль и задача, конкретные инструкции, желаемый формат вывода, ограничения и критерии успеха.\n- Few-shot примеры, когда они помогают; убирай двусмысленность, перегруз и противоречия.\n- Указывай типичные ошибки исходного промпта.\nФормат: улучшенная версия промпта → кратко что изменено и почему → (опц.) альтернативный вариант."
+    },
+    {
+      "name": "Тимлид-планировщик",
+      "system": "Ты — Claude Code в роли тимлида/планировщика. Разбивай задачи на понятные, проверяемые шаги:\n- Для каждого шага — цель, критерий готовности и оценка объёма.\n- Указывай зависимости, порядок выполнения, риски и блокеры.\n- Отмечай, что нужно уточнить до старта.\n- Предлагай простой план по умолчанию; не раздувай.\nКратко, структурно, без воды."
+    },
+    {
+      "name": "Kotlin / Android",
+      "system": "Ты — Claude Code в роли Android-разработчика (Kotlin, Jetpack Compose).\n- Идиоматичный Kotlin: null-safety, data-классы, корутины/Flow для асинхронности, immutable где можно.\n- Compose: состояние через remember/StateFlow, минимизируй рекомпозиции, стабильные параметры.\n- Архитектура MVVM, lifecycle-aware; обработка ошибок и состояний загрузки.\n- Без лишних зависимостей.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "C# / .NET",
+      "system": "Ты — Claude Code в роли .NET-разработчика (современный C#).\n- async/await корректно (никаких .Result/.Wait — дедлоки и блокировки), CancellationToken.\n- LINQ по делу, nullable reference types включены, встроенный DI.\n- using/IDisposable для ресурсов; явная обработка ошибок. ASP.NET Core для API.\n- Без лишних NuGet-пакетов.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "PHP / Laravel",
+      "system": "Ты — Claude Code в роли PHP-разработчика (PHP 8+, Laravel).\n- Строгая типизация (типы параметров и возврата), PSR-12.\n- Eloquent без N+1 (eager loading), валидация запросов (Form Request).\n- Защита от SQL-инъекций (биндинги/Query Builder) и XSS (экранирование в Blade).\n- Без лишних пакетов; обработка ошибок.\nФормат: рабочий код → краткое объяснение → альтернатива, если есть."
+    },
+    {
+      "name": "ML / PyTorch",
+      "system": "Ты — Claude Code в роли ML-инженера (Python, PyTorch).\n- Чистый train-loop; device-agnostic (cpu/cuda); optimizer.zero_grad(); torch.no_grad() и model.eval() для инференса.\n- Воспроизводимость (seed), батчи через DataLoader, корректные shape.\n- Указывай типичные ошибки: утечка данных train/val, забытый eval(), неверная нормализация, дисбаланс классов.\n- Type hints, PEP8. Без лишних зависимостей.\nФормат: рабочий код → краткое объяснение → на что обратить внимание."
+    }
+  ]
+};
+// --- наборы промптов: встроенный + файлы из prompts/index.json (для GitHub Pages) ---
+const kbPreset = () => ({ name: 'О TurboCodAI (база знаний)', system: KB_SYS });
+let PROMPT_SETS = [{ label: 'Встроенные', presets: [kbPreset(), ...(BUILTIN_PROMPTS.presets || []).slice()] }];
+let curSet = 0;
+function fillSetSelect(){
+  $('promptSet').innerHTML = PROMPT_SETS.map((s, i) => `<option value="${i}">${esc(s.label)}</option>`).join('');
+  $('promptSet').value = String(Math.min(curSet, PROMPT_SETS.length - 1));
+}
+function fillPresets(){
+  const ps = (PROMPT_SETS[curSet] || {}).presets || [];
+  $('preset').innerHTML = ps.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+}
+$('promptSet').onchange = () => { curSet = +$('promptSet').value; store.set('ds_set', String(curSet)); fillPresets(); };
+$('preset').onchange = () => {
+  const p = ((PROMPT_SETS[curSet] || {}).presets || [])[+$('preset').value];
+  if(p){ $('sysPrompt').value = p.system; store.set('ds_sys', p.system); }
+};
+async function loadPromptSets(){
+  PROMPT_SETS = [{ label: 'Встроенные (' + ((BUILTIN_PROMPTS.presets || []).length + 1) + ')', presets: [kbPreset(), ...(BUILTIN_PROMPTS.presets || []).slice()] }];
+  // манифест prompts/index.json -> [{file,label}] или ["file.json", ...]
+  try {
+    const idx = await (await fetch('prompts/index.json', { cache: 'no-store' })).json();
+    const list = Array.isArray(idx) ? idx : (idx.files || []);
+    for(const it of list){
+      const file = typeof it === 'string' ? it : it.file;
+      const label = (it && it.label) ? it.label : file;
+      try {
+        const j = await (await fetch('prompts/' + file, { cache: 'no-store' })).json();
+        const presets = Array.isArray(j) ? j : (j.presets || []);
+        if(presets.length) PROMPT_SETS.push({ label, presets });
+      } catch(e){}
+    }
+  } catch(e){}
+  // обратная совместимость: одиночный prompts.json рядом
+  try {
+    const j = await (await fetch('prompts.json', { cache: 'no-store' })).json();
+    const presets = Array.isArray(j) ? j : (j.presets || []);
+    if(presets.length) PROMPT_SETS.push({ label: 'prompts.json (' + presets.length + ')', presets });
+  } catch(e){}
+  if(curSet >= PROMPT_SETS.length) curSet = 0;
+  fillSetSelect(); fillPresets();
+  $('promptsHint').innerHTML = `Наборов промптов: <b>${PROMPT_SETS.length}</b>. На GitHub Pages подхватываются файлы из папки <b>prompts/</b> (список — в prompts/index.json). На file:// — только встроенные.`;
+}
+$('reloadPrompts').onclick = loadPromptSets;
+
+// --- состояние: профили ИИ + чаты + вложения ---
+let profiles = [], activeProfileId = null;
+let chats = [], activeChatId = null;
+let attachments = []; // [{name, text} | {name, image:dataURL}]
+function jget(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
+function jset(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+function uid(){ return 'id' + Math.random().toString(36).slice(2) + (Date.now() % 100000); }
+function activeChat(){ return chats.find(c => c.id === activeChatId); }
+function activeProfile(){ return profiles.find(p => p.id === activeProfileId); }
+
+// --- тема (тёмная/светлая) ---
+function applyTheme(t){ document.body.classList.toggle('light', t === 'light'); }
+applyTheme(store.get('ds_theme') || 'dark');
+$('themeBtn').onclick = () => {
+  const t = document.body.classList.contains('light') ? 'dark' : 'light';
+  applyTheme(t); store.set('ds_theme', t);
+};
+
+// --- ZIP-упаковщик (метод store, без зависимостей) ---
+function crc32(bytes){
+  let t = crc32.t;
+  if(!t){ t = crc32.t = []; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320 ^ (c>>>1) : c>>>1; t[n]=c>>>0; } }
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = (crc>>>8) ^ t[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function zipBlob(files){
+  const enc = new TextEncoder();
+  const u16 = n => [n&255,(n>>8)&255];
+  const u32 = n => [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  const dataBytes = (content) => {
+    if(typeof content === 'string' && /^data:[^;,]*;base64,/.test(content)){ // картинка/бинарь
+      const bin = atob(content.split(',')[1] || ''); const a = new Uint8Array(bin.length);
+      for(let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a;
+    }
+    return enc.encode(content || '');
+  };
+  const chunks = [], central = []; let offset = 0;
+  for(const f of files){
+    const nameB = enc.encode(f.name), dataB = dataBytes(f.content), crc = crc32(dataB);
+    const local = [].concat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(dataB.length),u32(dataB.length),u16(nameB.length),u16(0));
+    chunks.push(new Uint8Array(local), nameB, dataB);
+    const cen = [].concat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(dataB.length),u32(dataB.length),u16(nameB.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset));
+    central.push(new Uint8Array(cen), nameB);
+    offset += local.length + nameB.length + dataB.length;
+  }
+  const cstart = offset; let csize = 0;
+  for(const c of central){ chunks.push(c); csize += c.length; }
+  const end = [].concat(u32(0x06054b50),u16(0),u16(0),u16(central.length/2),u16(central.length/2),u32(csize),u32(cstart),u16(0));
+  chunks.push(new Uint8Array(end));
+  return new Blob(chunks, { type: 'application/zip' });
+}
+function safeName(n){
+  n = String(n || 'file').replace(/^.*[\\/]/, '').replace(/[^\w.\- ]+/g, '_').trim();
+  return n || 'file';
+}
+function safePath(n){ // имя с подпапками, но без обхода путей
+  n = String(n || 'file').replace(/\\/g, '/').replace(/\.{2,}/g, '.').replace(/^\/+/, '').replace(/[^\w./\- ]+/g, '_').trim();
+  return n || 'file';
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+// --- панель артефактов ---
+const PREVIEWABLE = { html: 1, svg: 1 };
+let artState = { items: [], active: 0, mode: 'preview' };
+let lastFiles = {}; // name -> предыдущее содержимое (для diff «изменений»)
+function guessType(name, type){
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if(type && type !== 'file') return type;
+  return ({ html:'html', htm:'html', svg:'svg', css:'css', js:'js', mjs:'js', py:'python', json:'file', md:'file' })[ext] || 'file';
+}
+function openArtifacts(items, autoOpen, baseMap){
+  if(autoOpen === undefined) autoOpen = true;
+  artState.items = items.map((a, i) => {
+    const name = safePath(a.name || ('file' + (i + 1)));
+    const content = String(a.content || '');
+    let prev = null;
+    if(baseMap && baseMap[name] != null && baseMap[name] !== content) prev = baseMap[name];           // diff внутри запуска (база → финал)
+    else if(lastFiles[name] != null && lastFiles[name] !== content) prev = lastFiles[name];            // diff между генерациями
+    let stat = null;
+    if(prev != null){
+      const ol = prev.split('\n').length, nl = content.split('\n').length;
+      if(ol <= 1000 && nl <= 1000){ let add = 0, del = 0; for(const d of lineDiff(prev, content)){ if(d.type === 'add') add++; else if(d.type === 'del') del++; } stat = { add, del }; }
+    }
+    return { name, content, type: guessType(a.name, a.type), prev, stat, vfs: name };
+  });
+  if(autoOpen){ // сгенерированные файлы → в ФС чата (с защитой от дубликатов)
+    (async () => {
+      let changed = false;
+      for(const it of artState.items){ const r = await resolveWritePath(it.name); if(r.remapped && r.path !== it.name){ it.name = r.path; changed = true; } await VFS.writeFile(it.name, it.content); }
+      if(changed){ renderArt(); try { renderFm(); } catch(e){} }
+    })();
+  }
+  artState.items.forEach(it => { lastFiles[it.name] = it.content; }); // запомнить как базу для следующего diff
+  artState.active = 0;
+  $('artBtn').disabled = artState.items.length === 0;
+  if(artState.items.length && autoOpen){ $('artifacts').classList.remove('hidden'); renderArt(); }
+}
+function renderArt(){
+  const it = artState.items;
+  $('artTabs').innerHTML = it.map((a, i) =>
+    `<span class="art-tab ${i===artState.active?'active':''}" data-i="${i}">${esc(a.name)}${a.stat ? ` <span class="tab-badge"><span class="tb-add">+${a.stat.add}</span> <span class="tb-del">−${a.stat.del}</span></span>` : ''}<span class="art-tab-x" data-close="${i}" title="Закрыть">×</span></span>`).join('');
+  const cur = it[artState.active];
+  const body = $('artBody');
+  if(!cur){ $('artSeg').style.display = 'none'; body.innerHTML = '<div class="art-empty">Нет артефактов.</div>'; return; }
+  if(typeof cur.content === 'string' && cur.content.startsWith('data:image')){ // картинка — показываем как изображение
+    $('artSeg').style.display = 'none';
+    body.innerHTML = '<div class="art-prev" style="display:flex;align-items:center;justify-content:center;padding:10px"><img src="' + cur.content + '" style="max-width:100%;max-height:100%;object-fit:contain"></div>';
+    return;
+  }
+  const canPrev = PREVIEWABLE[cur.type];
+  const hasDiff = cur.prev != null;
+  if(artState.mode === 'preview' && !canPrev) artState.mode = 'code';
+  if(artState.mode === 'diff' && !hasDiff) artState.mode = 'code';
+  const segs = [];
+  if(canPrev) segs.push(['preview', ICON.eye, t('art.preview')]);
+  segs.push(['code', ICON.code, t('art.code')]);
+  if(hasDiff) segs.push(['diff', ICON.diff, t('art.diff')]);
+  $('artSeg').style.display = 'flex';
+  $('artSeg').innerHTML = segs.map(s => `<button data-mode="${s[0]}" class="${artState.mode === s[0] ? 'on' : ''}">${s[1]} <span>${esc(s[2])}</span></button>`).join('');
+  if(artState.mode === 'diff' && hasDiff){ body.innerHTML = renderDiff(cur); return; }
+  const showPrev = canPrev && artState.mode === 'preview';
+  body.innerHTML =
+    (showPrev ? '<div class="art-prev"><iframe id="artFrame" sandbox="allow-scripts allow-modals"></iframe></div>' : '') +
+    '<div class="art-code"><div class="art-ln" id="artLn"></div><pre class="code-hl" aria-hidden="true"><code id="artHl"></code></pre><textarea id="artCode" spellcheck="false"></textarea></div>';
+  const ta = $('artCode'); ta.value = cur.content;
+  const lang = (cur.name.split('.').pop() || '').toLowerCase();
+  const syncHl = () => {
+    const hl = $('artHl'); if(!hl) return;
+    hl.innerHTML = highlight(ta.value, lang) + '\n';
+    const pre = hl.parentElement; pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft;
+    const ln = $('artLn'); if(ln){ const cnt = ta.value.split('\n').length; let s = ''; for(let k = 1; k <= cnt; k++) s += k + '\n'; ln.textContent = s; ln.scrollTop = ta.scrollTop; }
+  };
+  syncHl();
+  ta.oninput = () => { cur.content = ta.value; syncHl(); if(cur.vfs){ clearTimeout(ta._vt); ta._vt = setTimeout(() => VFS.writeFile(cur.vfs, ta.value), 400); } if(canPrev && artState.mode === 'preview') refreshFrame(); };
+  ta.onscroll = syncHl;
+  if(showPrev) refreshFrame();
+}
+// построчный diff (LCS) для режима «Изменения»
+function lineDiff(a, b){
+  const A = a.split('\n'), B = b.split('\n'), n = A.length, m = B.length;
+  const dp = []; for(let i = 0; i <= n; i++) dp.push(new Int32Array(m + 1));
+  for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+    dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const out = []; let i = 0, j = 0, oldNo = 1, newNo = 1;
+  while(i < n && j < m){
+    if(A[i] === B[j]){ out.push({ type: 'ctx', text: A[i], oldNo: oldNo++, newNo: newNo++ }); i++; j++; }
+    else if(dp[i + 1][j] >= dp[i][j + 1]){ out.push({ type: 'del', text: A[i], oldNo: oldNo++ }); i++; }
+    else { out.push({ type: 'add', text: B[j], newNo: newNo++ }); j++; }
+  }
+  while(i < n){ out.push({ type: 'del', text: A[i], oldNo: oldNo++ }); i++; }
+  while(j < m){ out.push({ type: 'add', text: B[j], newNo: newNo++ }); j++; }
+  return out;
+}
+function renderDiff(cur){
+  if(cur.prev == null) return '<div class="art-empty">Нет предыдущей версии для сравнения.</div>';
+  const oldL = cur.prev.split('\n').length, newL = cur.content.split('\n').length;
+  if(oldL > 1000 || newL > 1000) return '<div class="art-empty">Файл большой — diff отключён (>1000 строк).</div>';
+  const lang = (cur.name.split('.').pop() || '').toLowerCase();
+  const diff = lineDiff(cur.prev, cur.content);
+  let added = 0, removed = 0;
+  const rows = diff.map(d => {
+    if(d.type === 'add') added++; else if(d.type === 'del') removed++;
+    const sign = d.type === 'add' ? '+' : (d.type === 'del' ? '−' : ' ');
+    return `<div class="dl ${d.type}"><span class="dln">${d.oldNo || ''}</span><span class="dln">${d.newNo || ''}</span><span class="dsg">${sign}</span><span class="dco">${highlight(d.text, lang) || '&nbsp;'}</span></div>`;
+  }).join('');
+  return `<div class="diff-head">+${added} −${removed} · ${esc(cur.name)}</div><div class="diffblock">${rows}</div>`;
+}
+// найти артефакт по ссылке (учитывая путь/басенейм, ?query и #hash)
+function findArt(items, ref){
+  ref = String(ref || '').replace(/^\.\//, '').replace(/[?#].*$/, '');
+  const base = ref.split('/').pop();
+  return items.find(a => a.name === ref || a.name.split('/').pop() === base);
+}
+// встроить соседние CSS/JS прямо в HTML (для превью в iframe srcdoc, где нет origin)
+function inlineHtml(html, items){
+  html = html.replace(/<link\b[^>]*>/gi, (tag) => {
+    if(!/stylesheet/i.test(tag)) return tag;
+    const m = tag.match(/href\s*=\s*["']([^"']+)["']/i);
+    const art = m && findArt(items, m[1]);
+    return art ? '<style>\n' + art.content + '\n</style>' : tag;
+  });
+  html = html.replace(/<script\b([^>]*?)\ssrc\s*=\s*["']([^"']+)["']([^>]*)>\s*<\/script>/gi, (full, pre, src, post) => {
+    const art = findArt(items, src);
+    return art ? '<scr' + 'ipt>\n' + art.content + '\n<\/scr' + 'ipt>' : full;
+  });
+  // подставить сгенерированные картинки из ФС (img src=... и url(...))
+  const imgFor = (ref) => { ref = String(ref || '').replace(/^\.\//, '').replace(/[?#].*$/, ''); return imgCache[safePath(ref)] || imgCache[Object.keys(imgCache).find(k => k.split('/').pop() === ref.split('/').pop()) || '']; };
+  html = html.replace(/(<img\b[^>]*?\bsrc\s*=\s*["'])([^"']+)(["'])/gi, (full, pre, src, post) => { const d = imgFor(src); return d ? pre + d + post : full; });
+  html = html.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (full, q, ref) => { const d = imgFor(ref); return d ? 'url(' + d + ')' : full; });
+  return html;
+}
+function refreshFrame(){
+  const cur = artState.items[artState.active]; const f = $('artFrame'); if(!f || !cur) return;
+  const render = () => { f.srcdoc = cur.type === 'svg'
+    ? '<!doctype html><meta charset="utf-8"><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh">' + cur.content + '</body>'
+    : inlineHtml(cur.content, artState.items); };
+  loadImgCache().then(render).catch(render);
+}
+function closeArtTab(i){
+  artState.items.splice(i, 1);
+  if(!artState.items.length){ $('artifacts').classList.add('hidden'); $('artBtn').disabled = true; return; }
+  if(artState.active >= artState.items.length) artState.active = artState.items.length - 1;
+  renderArt();
+}
+$('artTabs').onclick = e => {
+  const x = e.target.closest('[data-close]'); if(x){ e.stopPropagation(); closeArtTab(+x.dataset.close); return; }
+  const t = e.target.closest('.art-tab'); if(t){ artState.active = +t.dataset.i; renderArt(); }
+};
+$('artSeg').onclick = e => { const b = e.target.closest('button'); if(b){ artState.mode = b.dataset.mode; renderArt(); } };
+$('artBtn').onclick = () => { if($('artBtn').disabled) return; const willShow = $('artifacts').classList.contains('hidden'); $('artifacts').classList.toggle('hidden'); if(willShow) renderArt(); };
+$('artCloseBtn').onclick = () => $('artifacts').classList.add('hidden');
+$('artZip').onclick = () => {
+  if(!artState.items.length) return;
+  downloadBlob(zipBlob(artState.items.map(a => ({ name: a.name, content: a.content }))), 'artifacts.zip');
+};
+// полноэкранное превью
+function fsContent(cur){
+  return cur.type === 'svg'
+    ? '<!doctype html><meta charset="utf-8"><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh">' + cur.content + '</body>'
+    : inlineHtml(cur.content, artState.items);
+}
+function openFullPreview(){
+  const cur = artState.items[artState.active];
+  if(!cur || !PREVIEWABLE[cur.type]){ toast('Полный экран — для HTML/SVG-артефактов'); return; }
+  $('fsName').textContent = '⛶ ' + cur.name;
+  $('fsFrame').srcdoc = fsContent(cur);
+  $('fsOverlay').classList.remove('hidden');
+  try { if($('fsOverlay').requestFullscreen) $('fsOverlay').requestFullscreen(); } catch(e){}
+}
+function closeFullPreview(){
+  $('fsOverlay').classList.add('hidden'); $('fsFrame').srcdoc = '';
+  try { if(document.fullscreenElement) document.exitFullscreen(); } catch(e){}
+}
+$('artFull').onclick = openFullPreview;
+$('fsClose').onclick = closeFullPreview;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('fsOverlay').classList.contains('hidden')) closeFullPreview(); });
+
+// --- распознать структурированный ответ с артефактами ---
+function extractArtifacts(text){
+  let t = (text || '').trim();
+  const fence = t.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  if(fence) t = fence[1].trim();
+  if(!(t.startsWith('{') && t.endsWith('}'))) return null;
+  try {
+    const o = JSON.parse(t);
+    if(o && typeof o === 'object' && (Array.isArray(o.artifacts) || typeof o.response === 'string')) return o;
+  } catch {}
+  return null;
+}
+
+// --- лёгкий рендер markdown (без зависимостей) ---
+function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+// --- универсальная подсветка синтаксиса (без зависимостей, любой язык) ---
+const HL_KW = new Set(('abstract,and,arguments,as,assert,async,await,base,begin,bool,boolean,break,byte,case,catch,char,'
+  + 'class,const,constructor,continue,debugger,decimal,def,default,defer,del,delete,do,double,elif,else,end,enum,event,'
+  + 'except,export,extends,extern,final,finally,float,fn,for,foreach,from,func,function,global,go,goto,if,impl,implements,'
+  + 'import,in,include,inline,instanceof,int,interface,is,lambda,let,local,long,loop,match,module,mut,namespace,native,new,'
+  + 'not,object,operator,or,override,package,params,pass,private,protected,public,raise,readonly,record,ref,register,return,'
+  + 'sealed,select,short,signed,sizeof,static,std,str,string,struct,super,switch,synchronized,template,then,throw,throws,'
+  + 'trait,transient,try,type,typedef,typeof,uint,union,unsigned,use,using,val,var,virtual,void,volatile,when,where,while,'
+  + 'with,yield').split(','));
+const HL_LIT = new Set(['true','false','null','nil','none','None','True','False','undefined','NaN','Infinity','self','this','super']);
+function hlLineComments(lang){
+  const l = ['//'];
+  if(/^(py|python|rb|ruby|sh|bash|shell|zsh|yaml|yml|perl|pl|r|toml|ini|conf|makefile|make|dockerfile|nim|jl|julia|ex|exs|elixir|cr|crystal|coffee|properties|php)$/.test(lang)) l.push('#');
+  if(/^(sql|lua|hs|haskell|elm|ada)$/.test(lang)) l.push('--');
+  if(/^(clj|cljs|clojure|lisp|scm|scheme|asm|ini)$/.test(lang)) l.push(';');
+  return l;
+}
+function highlightHtml(code){
+  code = String(code); let out = '', i = 0; const n = code.length;
+  const span = (cls, t) => { if(!t) return; out += cls ? '<span class="t-' + cls + '">' + esc(t) + '</span>' : esc(t); };
+  while(i < n){
+    if(code.startsWith('<!--', i)){ let j = code.indexOf('-->', i + 4); j = j < 0 ? n : j + 3; span('com', code.slice(i, j)); i = j; continue; }
+    if(code[i] === '<' && /[a-zA-Z!\/]/.test(code[i + 1] || '')){
+      let end = code.indexOf('>', i); end = end < 0 ? n : end + 1;
+      const tag = code.slice(i, end); let k = 0;
+      span('op', tag[k]); k++;                                  // <
+      if(tag[k] === '/'){ span('op', '/'); k++; }                // /
+      if(tag[k] === '!'){ const e = tag.endsWith('>'); span('kw', tag.slice(k, e ? tag.length - 1 : tag.length)); if(e) span('op', '>'); i = end; continue; }
+      let nm = k; while(nm < tag.length && /[A-Za-z0-9:_-]/.test(tag[nm])) nm++;
+      span('tag', tag.slice(k, nm)); k = nm;
+      while(k < tag.length){
+        const ch = tag[k];
+        if(/\s/.test(ch)){ let s = k; while(k < tag.length && /\s/.test(tag[k])) k++; span('', tag.slice(s, k)); continue; }
+        if(ch === '=' || ch === '/' || ch === '>'){ span('op', ch); k++; continue; }
+        if(ch === '"' || ch === "'"){ let s = k; k++; while(k < tag.length && tag[k] !== ch) k++; k++; span('str', tag.slice(s, Math.min(k, tag.length))); continue; }
+        let s = k; while(k < tag.length && /[^\s=\/>]/.test(tag[k])) k++; span('attr', tag.slice(s, k));
+      }
+      i = end; continue;
+    }
+    let j = i + 1; while(j < n && code[j] !== '<') j++; span('', code.slice(i, j)); i = j;
+  }
+  return out;
+}
+function highlightCss(code){
+  code = String(code); let out = '', i = 0; const n = code.length; let depth = 0;
+  const span = (cls, t) => { if(!t) return; out += cls ? '<span class="t-' + cls + '">' + esc(t) + '</span>' : esc(t); };
+  while(i < n){
+    const c = code[i];
+    if(c === '/' && code[i + 1] === '*'){ let j = code.indexOf('*/', i + 2); j = j < 0 ? n : j + 2; span('com', code.slice(i, j)); i = j; continue; }
+    if(c === '"' || c === "'"){ let j = i + 1; while(j < n){ if(code[j] === '\\'){ j += 2; continue; } if(code[j] === c){ j++; break; } j++; } span('str', code.slice(i, j)); i = j; continue; }
+    if(c === '{'){ depth++; span('op', c); i++; continue; }
+    if(c === '}'){ depth = Math.max(0, depth - 1); span('op', c); i++; continue; }
+    if(c === '@'){ let j = i + 1; while(j < n && /[A-Za-z-]/.test(code[j])) j++; span('kw', code.slice(i, j)); i = j; continue; }
+    if(c === '#'){ let j = i + 1; while(j < n && /[0-9a-fA-F]/.test(code[j])) j++; if(j > i + 1){ span('num', code.slice(i, j)); i = j; continue; } span('op', c); i++; continue; }
+    if(/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(code[i + 1] || ''))){ let j = i + 1; while(j < n && /[0-9a-zA-Z.%_-]/.test(code[j])) j++; span('num', code.slice(i, j)); i = j; continue; }
+    if(/[A-Za-z_-]/.test(c)){ let j = i + 1; while(j < n && /[A-Za-z0-9_-]/.test(code[j])) j++; const w = code.slice(i, j);
+      let k = j; while(k < n && /\s/.test(code[k])) k++;
+      const cls = (depth > 0 && code[k] === ':') ? 'attr' : (depth > 0 ? 'lit' : '');
+      span(cls, w); i = j; continue;
+    }
+    if(/[{}();:,>+~*.[\]=]/.test(c)){ span('op', c); i++; continue; }
+    span('', c); i++;
+  }
+  return out;
+}
+function highlight(code, lang){
+  code = String(code); lang = (lang || '').toLowerCase();
+  if(/^(html|htm|xml|svg|vue|xhtml|xsl|rss|atom)$/.test(lang)) return highlightHtml(code);
+  if(/^(css|scss|sass|less|styl|stylus)$/.test(lang)) return highlightCss(code);
+  const lc = hlLineComments(lang);
+  const html = /^(html|htm|xml|svg|vue|md|markdown)$/.test(lang);
+  let out = '', i = 0; const n = code.length;
+  const span = (cls, txt) => { out += cls ? '<span class="t-' + cls + '">' + esc(txt) + '</span>' : esc(txt); };
+  const at = (s) => code.startsWith(s, i);
+  while(i < n){
+    const c = code[i];
+    if(c === '/' && code[i + 1] === '*'){ let j = code.indexOf('*/', i + 2); j = j < 0 ? n : j + 2; span('com', code.slice(i, j)); i = j; continue; }
+    if(html && at('<!--')){ let j = code.indexOf('-->', i + 4); j = j < 0 ? n : j + 3; span('com', code.slice(i, j)); i = j; continue; }
+    let lcm = lc.find(m => at(m));
+    if(lcm){ let j = code.indexOf('\n', i); j = j < 0 ? n : j; span('com', code.slice(i, j)); i = j; continue; }
+    if(c === '"' || c === "'" || c === '`'){ let j = i + 1; while(j < n){ if(code[j] === '\\'){ j += 2; continue; } if(code[j] === c){ j++; break; } j++; } span('str', code.slice(i, j)); i = j; continue; }
+    if(/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(code[i + 1] || ''))){ let j = i + 1; while(j < n && /[0-9a-fA-FxXeE._]/.test(code[j])) j++; span('num', code.slice(i, j)); i = j; continue; }
+    if(/[A-Za-z_$@]/.test(c)){ let j = i + 1; while(j < n && /[A-Za-z0-9_$]/.test(code[j])) j++; const w = code.slice(i, j);
+      let k = j; while(k < n && (code[k] === ' ' || code[k] === '\t')) k++;
+      const cls = HL_KW.has(w) ? 'kw' : (HL_LIT.has(w) ? 'lit' : (code[k] === '(' ? 'fn' : ''));
+      span(cls, w); i = j; continue;
+    }
+    if(/[{}()[\];,.:?=+\-*/%<>!&|^~]/.test(c)){ span('op', c); i++; continue; }
+    span('', c); i++;
+  }
+  return out;
+}
+
+function codeBlockHtml(code, lang){
+  let count = code.split('\n').length;
+  if(count > 1 && code.endsWith('\n')) count--;     // не считать пустую трейлинг-строку
+  let nums = ''; for(let k = 1; k <= count; k++) nums += k + '\n';
+  return '<pre class="codeblock"><span class="ln-col">' + esc(nums) + '</span><span class="code-wrap"><code class="hl">' + highlight(code, lang) + '</code></span></pre>';
+}
+function renderMd(text){
+  const parts = text.split(/```/);
+  let html = '';
+  parts.forEach((seg, i) => {
+    if(i % 2 === 1){ // блок кода
+      const nl = seg.indexOf('\n');
+      const info = nl >= 0 ? seg.slice(0, nl).trim() : '';
+      const lang = (info.split(/\s+/)[0] || '');
+      let code = nl >= 0 ? seg.slice(nl + 1) : seg;
+      code = code.replace(/\n$/, '');
+      html += codeBlockHtml(code, lang);
+    } else {
+      let s = esc(seg)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+        .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>');
+      s = s.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
+      s = s.split(/\n{2,}/).map(p => p.includes('<li>')||p.includes('<h3>')||p.includes('<pre>') ? p : `<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+      html += s;
+    }
+  });
+  return html;
+}
+
+function addMsg(role, text, opts){
+  opts = opts || {};
+  const empty = $('chat').querySelector('.empty'); if(empty) empty.remove();
+  const el = document.createElement('div'); el.className = 'msg ' + role;
+  el.innerHTML = `<div class="av">${role === 'user' ? 'Я' : 'AI'}</div>
+    <div class="body"><div class="who">${role === 'user' ? 'Вы' : 'AI'}</div>
+    <div class="bubble"></div></div>`;
+  $('chat').appendChild(el);
+  const body = el.querySelector('.body');
+  const bubble = el.querySelector('.bubble');
+  bubble.innerHTML = role === 'assistant' ? renderMd(text || '') : esc(text || '').replace(/\n/g,'<br>');
+  if(opts.files && opts.files.length){
+    const f = document.createElement('div'); f.className = 'files'; f.textContent = '📎 ' + opts.files.join(', ');
+    body.insertBefore(f, bubble);
+  }
+  if(opts.images && opts.images.length){
+    const im = document.createElement('div'); im.className = 'files';
+    opts.images.forEach(u => { const img = new Image(); img.src = u; im.appendChild(img); });
+    body.insertBefore(im, bubble);
+  }
+  scrollDown();
+  return bubble;
+}
+function scrollDown(){ const m = document.querySelector('main'); if(m) m.scrollTop = m.scrollHeight; }
+function toApiMsg(m){
+  if(m.role === 'user' && m.images && m.images.length){
+    return { role: 'user', content: [{ type: 'text', text: m.content }, ...m.images.map(u => ({ type: 'image_url', image_url: { url: u } }))] };
+  }
+  return { role: m.role, content: m.content };
+}
+function toast(msg){
+  let t = $('toast2');
+  if(!t){ t = document.createElement('div'); t.id = 'toast2'; t.className = 'toast2'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1900);
+}
+
+// --- извлечение файлов из markdown код-блоков (работает с ЛЮБОЙ моделью) ---
+function extForLang(l){
+  return ({javascript:'js',js:'js',node:'js',typescript:'ts',ts:'ts',jsx:'jsx',tsx:'tsx',python:'py',py:'py',
+    html:'html',htm:'html',css:'css',scss:'scss',json:'json',jsonc:'json',bash:'sh',sh:'sh',shell:'sh',zsh:'sh',
+    markdown:'md',md:'md',svg:'svg',xml:'xml',yaml:'yml',yml:'yml',sql:'sql',go:'go',rust:'rs',rs:'rs',
+    java:'java',c:'c',cpp:'cpp','c++':'cpp',cs:'cs',php:'php',ruby:'rb',rb:'rb',kotlin:'kt',kt:'kt',
+    swift:'swift',vue:'vue',dockerfile:'Dockerfile',toml:'toml',ini:'ini',text:'txt',txt:'txt',plaintext:'txt'})[l] || 'txt';
+}
+function fileFromStr(s){
+  if(!s) return '';
+  let c = s.replace(/[*`>#]/g, ' ').replace(/^\s*(файл|file|filename|имя файла|путь|path)\s*[:\-—]?\s*/i, '').trim();
+  const m = c.match(/[\w.\-\/]+\.[a-zA-Z][a-zA-Z0-9]{0,7}\b/); // имя.расширение (расширение с буквы — чтобы не ловить "2.0")
+  return m ? m[0] : '';
+}
+function pickFileName(hint, info, code){
+  let n = fileFromStr(info); if(n) return n;                          // ```html:index.html / ```index.html
+  if(hint){ const w = hint.replace(/[*`>#:]/g, ' ').trim().split(/\s+/); // строка-подсказка (если короткая — похожа на имя)
+    if(w.length <= 4){ n = fileFromStr(hint); if(n) return n; } }
+  const first = (code.split('\n').find(l => l.trim()) || '').trim();   // комментарий в первой строке
+  n = fileFromStr(first.replace(/^\s*(<!--|\/\/|#|\/\*|--|;)\s*/, '').replace(/\s*(-->|\*\/)\s*$/, ''));
+  return n || '';
+}
+function extractCodeFiles(text){
+  const lines = String(text).split('\n');
+  const files = []; let i = 0, n = 0, hint = '';
+  while(i < lines.length){
+    const f = lines[i].match(/^\s*```(.*)$/);
+    if(f){
+      const info = f[1].trim(); const body = []; i++;
+      while(i < lines.length && !/^\s*```\s*$/.test(lines[i])){ body.push(lines[i]); i++; }
+      i++; n++;
+      const code = body.join('\n');
+      if(code.trim()){
+        const name = pickFileName(hint, info, code) || ('file' + n + '.' + extForLang((info.split(/\s+/)[0] || 'txt').toLowerCase()));
+        files.push({ name: safePath(name), content: code });
+      }
+      hint = '';
+    } else { if(lines[i].trim()) hint = lines[i].trim(); i++; }
+  }
+  return files;
+}
+function renderSuggestions(list, bubble){
+  if(!Array.isArray(list) || !list.length) return;
+  const sg = document.createElement('div'); sg.className = 'suggestions';
+  list.forEach(s => {
+    const b = document.createElement('button'); b.className = 'sugg'; b.textContent = String(s);
+    b.onclick = () => { $('input').value = String(s); autosize(); $('input').focus(); };
+    sg.appendChild(b);
+  });
+  bubble.parentElement.appendChild(sg);
+}
+function addDownloadBtn(bubble, files){
+  const word = files.length === 1 ? 'файл' : (files.length < 5 ? 'файла' : 'файлов');
+  const b = document.createElement('button'); b.className = 'sugg'; b.style.borderRadius = '8px';
+  b.textContent = `📦 Скачать проект (${files.length} ${word}, ZIP)`;
+  b.onclick = () => downloadBlob(zipBlob(files.map(a => ({ name: a.name, content: a.content }))), 'project.zip');
+  const wrap = document.createElement('div'); wrap.className = 'suggestions'; wrap.appendChild(b);
+  bubble.parentElement.appendChild(wrap);
+}
+
+// --- разбор ответа: строгий JSON ИЛИ файлы из код-блоков ---
+function handleArtifacts(acc, bubble, autoOpen){
+  if(autoOpen === undefined) autoOpen = true;
+  const obj = extractArtifacts(acc);
+  if(obj){
+    bubble.innerHTML = renderMd(obj.response || '*(см. артефакты справа →)*');
+    if(Array.isArray(obj.artifacts) && obj.artifacts.length){ openArtifacts(obj.artifacts, autoOpen); addDownloadBtn(bubble, artState.items); }
+    renderSuggestions(obj.suggestions, bubble);
+    scrollDown();
+    return;
+  }
+  // Фолбэк: вытащить файлы из код-блоков (любая модель пишет ```код```)
+  const files = extractCodeFiles(acc);
+  if(files.length){
+    openArtifacts(files, autoOpen);
+    addDownloadBtn(bubble, files);
+    scrollDown();
+  }
+}
+function authHeaders(){ return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + $('apiKey').value.trim() }; }
+
+// --- понятные сообщения об ошибках провайдера ---
+function explainHttp(status, raw){
+  let detail = '';
+  try { const j = JSON.parse(raw); detail = (j.error && j.error.message) || j.message || ''; } catch {}
+  if(!detail) detail = String(raw || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  detail = detail.slice(0, 220);
+  const hints = {
+    401: 'неверный API-ключ/токен — проверь поле «API-ключ» в активном профиле.',
+    402: 'недостаточно средств на балансе провайдера (например, DeepSeek) — пополни счёт или смени провайдера.',
+    403: 'провайдер отклонил запрос. Проверь: (1) модель доступна твоему аккаунту; (2) в OpenRouter → Privacy включены тумблеры «Free endpoints that may train…» и «…publish prompts». Часто это гео/доступ-блок конкретной модели — попробуй другую, напр. deepseek/deepseek-chat-v3-0324:free.',
+    404: 'не найдено — проверь Base URL и точное имя модели (нужен id, а не отображаемое название).',
+    429: 'слишком много запросов (rate limit) — подожди немного или смени модель/провайдер.',
+  };
+  let msg = 'HTTP ' + status;
+  if(hints[status]) msg += ' — ' + hints[status];
+  if(detail) msg += '\nОтвет провайдера: ' + detail;
+  return msg;
+}
+async function httpError(resp){
+  let raw = ''; try { raw = await resp.text(); } catch {}
+  return new Error(explainHttp(resp.status, raw));
+}
+
+// --- обычный режим: стриминг ---
+async function runStream(apiMessages, bubble, chat){
+  let acc = '';
+  const resp = await fetch(endpoint(), { method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ model: $('model').value.trim(), stream: true, messages: apiMessages }) });
+  if(!resp.ok){ throw await httpError(resp); }
+  const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = '';
+  while(true){
+    const { value, done } = await reader.read(); if(done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for(const line of lines){
+      const l = line.trim();
+      if(!l.startsWith('data:')) continue;
+      const data = l.slice(5).trim();
+      if(data === '[DONE]') continue;
+      try { const j = JSON.parse(data); const d = j.choices?.[0]?.delta?.content || '';
+        if(d){ acc += d; bubble.innerHTML = renderMd(acc); scrollDown(); } } catch {}
+    }
+  }
+  chat.messages.push({ role: 'assistant', content: acc });
+  handleArtifacts(acc, bubble);
+  addRefineButton(bubble, chat);
+}
+
+// --- режим функций: клиент сам вызывает API (без стриминга) ---
+const CLIENT_TOOLS = [
+  { type: 'function', function: { name: 'get_weather', description: 'Текущая погода в городе.', parameters: { type: 'object', properties: { location: { type: 'string' } }, required: ['location'] } } },
+  { type: 'function', function: { name: 'get_time', description: 'Текущее локальное время пользователя.', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'fetch_url', description: 'Скачать содержимое публичного URL (может блокироваться CORS).', parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } } },
+];
+async function runClientTool(name, args){
+  try {
+    if(name === 'get_time') return new Date().toLocaleString();
+    if(name === 'get_weather'){
+      const loc = String(args.location || '').trim(); if(!loc) return 'error: location required';
+      const g = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(loc))).json();
+      if(!g.results || !g.results.length) return 'город не найден';
+      const p = g.results[0];
+      const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,wind_speed_10m`)).json();
+      return JSON.stringify({ location: p.name, country: p.country, temp_c: w.current?.temperature_2m, wind_ms: w.current?.wind_speed_10m });
+    }
+    if(name === 'fetch_url'){
+      const u = String(args.url || ''); if(!/^https?:\/\//.test(u)) return 'error: нужен http(s) URL';
+      return (await (await fetch(u)).text()).slice(0, 3000);
+    }
+    return 'error: unknown tool ' + name;
+  } catch(e){ return 'error (возможно CORS): ' + (e.message || e); }
+}
+async function runWithTools(apiMessages, bubble, chat){
+  bubble.innerHTML = '<span class="err" style="color:var(--muted)">…работаю с функциями</span>';
+  let final = '';
+  for(let i = 0; i < 5; i++){
+    const r = await fetch(endpoint(), { method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ model: $('model').value.trim(), stream: false, messages: apiMessages, tools: CLIENT_TOOLS }) });
+    if(!r.ok){ throw await httpError(r); }
+    const msg = (await r.json()).choices[0].message;
+    if(msg.tool_calls && msg.tool_calls.length){
+      apiMessages.push(msg);
+      for(const tc of msg.tool_calls){
+        let a = {}; try { a = JSON.parse(tc.function.arguments || '{}'); } catch {}
+        const res = await runClientTool(tc.function.name, a);
+        apiMessages.push({ role: 'tool', tool_call_id: tc.id, content: res });
+      }
+      continue;
+    }
+    final = msg.content || ''; break;
+  }
+  bubble.innerHTML = renderMd(final || '(пусто)');
+  chat.messages.push({ role: 'assistant', content: final });
+  handleArtifacts(final, bubble);
+  addRefineButton(bubble, chat);
+}
+
+async function send(){
+  const text = $('input').value.trim();
+  if(!text && !attachments.length) return;
+  if(!$('apiKey').value.trim()){ $('settings').classList.add('open'); toast('Введите API-ключ / токен в Настройках'); return; }
+
+  const chat = activeChat() || newChat();
+  const imgs = attachments.filter(a => a.image).map(a => a.image);
+  const fileNames = attachments.map(a => a.name);
+  let content = text;
+  for(const a of attachments.filter(a => a.text != null)) content += `\n\n--- файл: ${a.name} ---\n${a.text}`;
+
+  const userMsg = { role: 'user', content, text, images: imgs.length ? imgs : undefined, files: fileNames.length ? fileNames : undefined };
+  chat.messages.push(userMsg);
+  addMsg('user', text, { images: imgs, files: fileNames });
+  $('input').value = ''; autosize(); attachments = []; renderAttachRow();
+  if(!chat.title || chat.title === 'Новый чат'){ chat.title = (text || fileNames[0] || 'Чат').slice(0, 42); renderChatList(); }
+  saveChatsState();
+
+  $('send').disabled = true;
+  let bubble = null;
+  try {
+    if(agentMode){
+      // режим команды: координатор сам решает, нужны ли агенты (несколько файлов)
+      await orchestrateInChat(text || content, chat);
+    } else {
+      // (3) авто-сжатие контекста при превышении лимита
+      if(chat.messages.length > CTX_LIMIT){ try { await compressHistory(chat); } catch(e){} }
+      // (1) динамический системный промпт
+      bubble = addMsg('assistant', '');
+      let apiMessages = await buildApiMessages(chat);
+      if($('toolsOn').checked) await runWithTools(apiMessages, bubble, chat);
+      else await runStream(apiMessages, bubble, chat);
+      // (4) клиент сам выполняет инструменты ФС из ответа и продолжает
+      let guard = 0;
+      while(guard++ < 3){
+        const last = chat.messages[chat.messages.length - 1];
+        const results = (last && last.role === 'assistant') ? await parseAndExecuteTools(last.content) : [];
+        if(!results.length) break;
+        chat.messages.push({ role: 'user', content: 'Результаты инструментов (выполнены клиентом):\n' + JSON.stringify(results, null, 2) });
+        addMsg('user', '🔧 Выполнены инструменты: ' + results.map(r => r.tool).join(', '), {});
+        const b2 = addMsg('assistant', '');
+        apiMessages = await buildApiMessages(chat);
+        if($('toolsOn').checked) await runWithTools(apiMessages, b2, chat);
+        else await runStream(apiMessages, b2, chat);
+      }
+    }
+  } catch(e){
+    if(bubble) bubble.innerHTML = `<span class="err">Ошибка: ${esc(String(e.message || e)).replace(/\n/g, '<br>')}</span>`;
+    else toast('Ошибка: ' + (e.message || e));
+  } finally {
+    $('send').disabled = false; $('input').focus(); saveChatsState(); renderContextPanel();
+  }
+}
+
+// --- профили ИИ ---
+function loadProfiles(){
+  profiles = jget('ds_profiles');
+  if(!Array.isArray(profiles) || !profiles.length){
+    profiles = [{ id: uid(), name: 'Профиль 1', provider: '', baseUrl: store.get('ds_base') || 'https://api.deepseek.com', model: store.get('ds_model') || 'deepseek-chat', apiKey: store.get('ds_key') || '' }];
+    jset('ds_profiles', profiles);
+  }
+  activeProfileId = store.get('ds_active_profile');
+  if(!activeProfile()) activeProfileId = profiles[0].id;
+}
+function applyProfile(p){
+  if(!p) return;
+  $('provider').value = p.provider || '';
+  $('baseUrl').value = p.baseUrl || 'https://api.deepseek.com';
+  $('model').value = p.model || 'deepseek-chat';
+  $('apiKey').value = p.apiKey || '';
+  $('profName').value = p.name || '';
+  $('profImage').checked = !!p.image;
+  corsNote();
+}
+function getImageProfile(){ return profiles.find(p => p.image && (p.apiKey || '').trim()); }
+function fillProfileSelect(){
+  $('profileSel').innerHTML = profiles.map(p => `<option value="${p.id}">${esc(p.name || 'Профиль')}</option>`).join('');
+  $('profileSel').value = activeProfileId;
+  renderAgProfiles();
+}
+function readConnToProfile(){
+  const p = activeProfile(); if(!p) return;
+  p.name = $('profName').value.trim() || p.name;
+  p.provider = $('provider').value;
+  p.baseUrl = $('baseUrl').value.trim();
+  p.model = $('model').value.trim();
+  p.apiKey = $('apiKey').value.trim();
+  p.image = $('profImage').checked;
+}
+function newProfile(){
+  readConnToProfile();
+  const p = { id: uid(), name: 'Профиль ' + (profiles.length + 1), provider: '', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', apiKey: '' };
+  profiles.push(p); activeProfileId = p.id;
+  jset('ds_profiles', profiles); store.set('ds_active_profile', p.id);
+  fillProfileSelect(); applyProfile(p); $('settings').classList.add('open'); toast('Профиль создан — заполни и сохрани');
+}
+function delProfile(){
+  if(profiles.length <= 1){ toast('Нужен хотя бы один профиль'); return; }
+  profiles = profiles.filter(p => p.id !== activeProfileId);
+  activeProfileId = profiles[0].id;
+  jset('ds_profiles', profiles); store.set('ds_active_profile', activeProfileId);
+  fillProfileSelect(); applyProfile(activeProfile()); toast('Профиль удалён');
+}
+function switchProfile(id){
+  readConnToProfile(); jset('ds_profiles', profiles);
+  activeProfileId = id; store.set('ds_active_profile', id);
+  applyProfile(activeProfile()); fillProfileSelect();
+}
+
+// --- чаты (история в localStorage; указатель активного — в куках+localStorage) ---
+function loadChats(){
+  chats = jget('ds_chats') || [];
+  activeChatId = store.get('ds_active_chat');
+  if(!chats.length) newChat(false);
+  else if(!activeChat()) activeChatId = chats[0].id;
+}
+function saveChatsState(){ jset('ds_chats', chats); store.set('ds_active_chat', activeChatId); }
+function newChat(persist){
+  const c = { id: uid(), title: 'Новый чат', messages: [], ts: Date.now() };
+  chats.unshift(c); activeChatId = c.id;
+  artState = { items: [], active: 0, mode: 'preview' }; $('artifacts').classList.add('hidden'); $('artBtn').disabled = true;
+  if(persist !== false){ saveChatsState(); renderChatList(); renderMessages(c); }
+  return c;
+}
+function delChat(id){
+  try { VFS.deleteChat(id); } catch(e){}   // удалить файлы ФС этого чата
+  chats = chats.filter(c => c.id !== id);
+  if(activeChatId === id) activeChatId = chats[0] ? chats[0].id : null;
+  if(!chats.length) newChat(false);
+  saveChatsState(); renderChatList(); renderMessages(activeChat());
+}
+function switchChat(id){
+  activeChatId = id; store.set('ds_active_chat', id);
+  artState = { items: [], active: 0, mode: 'preview' }; $('artifacts').classList.add('hidden'); $('artBtn').disabled = true; // у каждого чата своя ФС/артефакты
+  renderChatList(); renderMessages(activeChat()); renderContextPanel(); renderFm();
+}
+function renderChatList(){
+  $('chatList').innerHTML = chats.map(c =>
+    `<div class="chat-item ${c.id === activeChatId ? 'active' : ''}" data-id="${c.id}"><span class="t">${c.pro ? '<span class="pro-badge">PRO</span>' : ''}${esc(c.title || 'Чат')}</span><button class="del" data-del="${c.id}" title="Удалить">${ICON.x}</button></div>`
+  ).join('') || '<div class="hint" style="padding:8px">Нет чатов</div>';
+}
+function renderMessages(chat){
+  $('chat').innerHTML = '';
+  if(!chat || !chat.messages.length){
+    $('chat').innerHTML = '<div class="empty">' + esc(t('chat.empty')) + '</div>';
+    return;
+  }
+  for(const m of chat.messages){
+    try {
+      const disp = m.role === 'user' ? (m.text != null ? m.text : m.content) : m.content;
+      const bubble = addMsg(m.role, disp, { files: m.files, images: m.images });
+      if(m.role === 'assistant') handleArtifacts(m.content, bubble, false); // на перезагрузке панель НЕ открываем
+    } catch(e){ /* одно битое сообщение не должно ломать весь рендер */ }
+  }
+}
+
+// --- вложения ---
+function addFiles(list){
+  for(const f of list){
+    if(attachments.length >= 8){ toast('Максимум 8 файлов'); break; }
+    if(f.size > 2 * 1024 * 1024){ toast('Файл >2 МБ пропущен: ' + f.name); continue; }
+    const reader = new FileReader();
+    if(/^image\//.test(f.type)){
+      reader.onload = () => { attachments.push({ name: f.name, image: reader.result }); renderAttachRow(); };
+      reader.readAsDataURL(f);
+    } else {
+      reader.onload = () => { attachments.push({ name: f.name, text: String(reader.result).slice(0, 200000) }); renderAttachRow(); };
+      reader.readAsText(f);
+    }
+  }
+}
+function renderAttachRow(){
+  $('attachRow').innerHTML = attachments.map((a, i) =>
+    `<span class="chip">${a.image ? '🖼' : '📄'} ${esc(a.name)} <span class="x" data-ai="${i}">✕</span></span>`).join('');
+}
+
+// --- сохранение настроек ---
+function saveSettings(){
+  readConnToProfile();
+  jset('ds_profiles', profiles);
+  store.set('ds_active_profile', activeProfileId);
+  store.set('ds_sys', $('sysPrompt').value);
+  store.set('ds_set', String(curSet));
+  store.set('ds_tools', $('toolsOn').checked ? '1' : '0');
+  // совместимость с одиночными ключами
+  store.set('ds_base', $('baseUrl').value.trim());
+  store.set('ds_model', $('model').value.trim());
+  store.set('ds_key', $('apiKey').value.trim());
+  fillProfileSelect();
+  toast(t('toast.saved'));
+}
+
+function autosize(){ const ta = $('input'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 200) + 'px'; }
+
+// --- события ---
+$('input').addEventListener('input', autosize);
+$('input').addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+$('send').onclick = send;
+$('clearBtn').onclick = () => {
+  const c = activeChat(); if(c){ c.messages = []; saveChatsState(); renderMessages(c); }
+  artState = { items: [], active: 0, mode: 'preview' }; $('artifacts').classList.add('hidden'); $('artBtn').disabled = true;
+};
+$('newChat').onclick = () => newChat();
+$('chatList').onclick = e => {
+  const del = e.target.closest('[data-del]'); if(del){ e.stopPropagation(); delChat(del.dataset.del); return; }
+  const it = e.target.closest('.chat-item'); if(it) switchChat(it.dataset.id);
+};
+$('profileSel').onchange = () => switchProfile($('profileSel').value);
+$('profNew').onclick = newProfile;
+$('profDel').onclick = delProfile;
+$('saveBtn').onclick = saveSettings;
+$('sysPrompt').oninput = () => store.set('ds_sys', $('sysPrompt').value);
+$('attachBtn').onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('attachRow').onclick = e => { const x = e.target.closest('[data-ai]'); if(x){ attachments.splice(+x.dataset.ai, 1); renderAttachRow(); } };
+$('sidebarBtn').onclick = () => $('sidebar').classList.toggle('hidden');
+
+// ═══════════════ Доп. возможности (7 шагов) ═══════════════
+
+// (6) Предустановленные профили
+const DEFAULT_PROFILES = [
+  { name: 'DeepSeek',          provider: 'deepseek',   baseUrl: 'https://api.deepseek.com',                                model: 'deepseek-chat' },
+  { name: 'OpenRouter',        provider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1',                            model: 'deepseek/deepseek-chat-v3-0324:free' },
+  { name: 'Ollama (локально)', provider: '',           baseUrl: 'http://localhost:11434/v1',                              model: 'llama3.1', apiKey: 'ollama' },
+  { name: 'Google Gemini',     provider: '',           baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-1.5-flash' },
+];
+function addDefaultProfiles(){
+  let added = 0;
+  for(const dp of DEFAULT_PROFILES){
+    if(!profiles.some(p => p.name === dp.name)){ profiles.push({ id: uid(), apiKey: '', ...dp }); added++; }
+  }
+  jset('ds_profiles', profiles); fillProfileSelect();
+  toast(added ? `Добавлено профилей: ${added}` : 'Готовые профили уже есть');
+}
+
+// (1) Динамический системный промпт (promptBuilder)
+function getModelConfig(modelName){
+  const m = (modelName || '').toLowerCase();
+  if(/reasoner|o1|o3|think|r1/.test(m)) return { note: 'Модель с рассуждением — можешь думать пошагово, но финальный ответ давай по делу.' };
+  if(/gemini/.test(m)) return { note: 'Gemini — отвечай структурированно, используй markdown.' };
+  if(/haiku|llama|groq|mini|flash|free|8b|7b/.test(m)) return { note: 'Лёгкая/быстрая модель — будь краток и конкретен.' };
+  return { note: '' };
+}
+function buildSystemPrompt(ctx){
+  ctx = ctx || {};
+  const base = ctx.rules || $('sysPrompt').value || DEFAULT_SYS;
+  const parts = [base];
+  // Справка о клиенте подмешивается ВСЕГДА — чтобы в любой момент можно было спросить о программе.
+  // (Не дублируем, если базовый промпт уже содержит базу знаний.)
+  if(!/БАЗА ЗНАНИЙ TurboCodAI/.test(base)) {
+    parts.push('Справка о самой программе. Используй её ТОЛЬКО если пользователь спрашивает о клиенте TurboCodAI (что это, что умеет, какие кнопки, как что-то сделать); в остальных случаях игнорируй и отвечай как обычно.\n\n' + KB);
+  }
+  const cfg = getModelConfig(ctx.modelName);
+  if(cfg.note) parts.push('Особенности модели: ' + cfg.note);
+  if(ctx.historySummary) parts.push('Краткое резюме предыдущего диалога:\n' + ctx.historySummary);
+  if(ctx.files && ctx.files.length){
+    const list = ctx.files.slice(0, 80).map(f => '- ' + f.path).join('\n') + (ctx.files.length > 80 ? '\n…и ещё ' + (ctx.files.length - 80) + ' файлов (ищи через <grep>)' : '');
+    parts.push('Файлы в виртуальной ФС:\n' + list);
+  }
+  if(ctx.errors) parts.push('Учитывай прошлые ошибки: ' + ctx.errors);
+  parts.push('Инструменты файловой системы (их выполняет КЛИЕНТ, не ты): чтобы прочитать/записать/искать файлы — выведи теги:\n<read_file path="имя">   <write_file path="имя" content="...">...</write_file>   <grep pattern="...">\nКлиент выполнит их и пришлёт результаты следующим сообщением.');
+  parts.push('⛔ ЖЁСТКОЕ ПРАВИЛО: ОДИН ЧАТ — ОДИН ПРОЕКТ. Файлы проекта уже лежат в ФС (см. список выше). Когда просят ИЗМЕНИТЬ/ДОБАВИТЬ что-то в существующем файле — РЕДАКТИРУЙ ИМЕННО ЕГО: при необходимости прочитай (read_file), затем перезапиши тем же путём (write_file с полным новым содержимым).\nСТРОГО ЗАПРЕЩЕНО создавать файл с НОВЫМ именем для уже существующего: никаких style2.css, app-new.js, index_v2.html, *-copy, *-final, копий и «версий». Пиши строго в существующий путь.\nСоздавать НОВЫЙ файл можно ТОЛЬКО если в проекте объективно нет подходящего и добавляется новая сущность (новый компонент/раздел/модуль), которую пользователь явно просит. Если сомневаешься — РЕДАКТИРУЙ существующий, а не создавай новый.');
+  if(getImageProfile()) parts.push('ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ ДОСТУПНА. Чтобы создать картинку для проекта (hero-баннер, фон, иллюстрацию, иконку и т.п.) — выведи тег:\n<gen_image prompt="детальное описание на английском" path="img/hero.png" size="1024x1024">\nКлиент сгенерирует картинку и сохранит её по этому пути в ФС — ссылайся на этот путь в HTML/CSS (например <img src="img/hero.png">). Параметры: prompt (обязателен, подробный), path (куда сохранить), size (1024x1024, 1024x1792 или 1792x1024). Используй это, когда проекту нужны изображения.');
+  return parts.join('\n\n');
+}
+async function buildApiMessages(chat){
+  let files = []; try { files = await VFS.listFiles(); } catch(e){}
+  let sys = buildSystemPrompt({
+    task: chat.messages[chat.messages.length - 1]?.content || '',
+    historySummary: chat.summary || '',
+    modelName: $('model').value.trim(),
+    files,
+  });
+  if(chat && chat.pro && chat.proDocs) sys = proSystemPrompt(chat.proDocs) + '\n\n' + sys;
+  if(chat && chat.repo) sys = 'К этому чату подключён репозиторий «' + chat.repo + '». Его файлы — в виртуальной ФС; изучай их тегами <read_file path="..."> и <grep pattern="...">, опирайся на реальный код.\n\n' + sys;
+  return [{ role: 'system', content: sys }, ...chat.messages.map(toApiMsg)];
+}
+// ── Профессиональный проект (доки → анализ → создание в чате) ──
+function proSystemPrompt(d){
+  let s = 'Это ПРОФЕССИОНАЛЬНЫЙ проект. Ты — старший разработчик и ведёшь его СТРОГО по документации ниже: опирайся на эти документы при анализе, планировании и генерации кода/файлов. Чего нет в документах — уточняй у пользователя. Можешь генерировать файлы проекта (артефакты).\n';
+  s += 'ИМЕНА ФАЙЛОВ (важно): перед КАЖДЫМ блоком кода ОБЯЗАТЕЛЬНО указывай имя файла отдельной строкой прямо над блоком, например:\nindex.html\n```html\n...\n```\nИспользуй осмысленные имена с правильными расширениями, согласованные между собой (ссылки в HTML на CSS/JS совпадают с реальными именами файлов). НЕ используй имена вида file1, agent1, untitled, безымянный.\n\n';
+  s += '=== БРИФ ===\n' + (d.brief || '') + '\n\n=== USER FLOW ===\n' + (d.userflow || '') + '\n\n=== ТЗ ===\n' + (d.tz || '') + '\n';
+  if(d.design) s += '\n=== ДИЗАЙН-СПЕКА ===\n' + d.design + '\n';
+  if(d.kb) s += '\n=== БАЗА ЗНАНИЙ ===\n' + d.kb + '\n';
+  return s.trim();
+}
+async function startProProject(docs){
+  const c = newChat();
+  c.pro = true; c.proDocs = docs; c.title = t('pro.chatTitle');
+  saveChatsState(); renderChatList(); renderMessages(c);
+  const sys = proSystemPrompt(docs) + '\n\n' + ($('sysPrompt').value || DEFAULT_SYS);
+  const bubble = addMsg('assistant', '');
+  bubble.innerHTML = '<span class="err" style="color:var(--muted)">' + esc(t('pro.title')) + '…</span>';
+  try {
+    const txt = await streamCall(sys, t('pro.analyze'), bubble);
+    c.messages.push({ role: 'assistant', content: txt });
+    handleArtifacts(txt, bubble);
+    addRefineButton(bubble, c);
+    // предложение собрать проект командой агентов (доки уже в контексте)
+    const sg = document.createElement('div'); sg.className = 'suggestions';
+    const tb = document.createElement('button'); tb.className = 'sugg'; tb.style.borderRadius = '8px';
+    tb.textContent = LANG === 'ru' ? '🤖 Построить командой агентов' : '🤖 Build with agent team';
+    tb.onclick = () => {
+      agentMode = true; $('agModeBtn').classList.toggle('on', true); store.set('ds_agentmode', '1');
+      $('input').value = LANG === 'ru' ? 'Построй проект по документам (бриф, user flow, ТЗ).' : 'Build the project from the documents (brief, user flow, spec).';
+      autosize(); $('input').focus();
+      toast(LANG === 'ru' ? 'Режим команды включён — нажми «Отправить»' : 'Team mode on — press “Send”');
+    };
+    sg.appendChild(tb); bubble.parentElement.appendChild(sg);
+  } catch(e){ bubble.innerHTML = '<span class="err">Ошибка: ' + esc(String(e.message || e)).replace(/\n/g, '<br>') + '</span>'; }
+  saveChatsState();
+}
+function openProModal(){ ['proBrief','proFlow','proTz','proDesign','proKb'].forEach(id => { const el = $(id); if(el) el.value = ''; }); $('proModal').classList.remove('hidden'); }
+function closeProModal(){ $('proModal').classList.add('hidden'); }
+let proFileTarget = null;
+$('proBtn').onclick = openProModal;
+$('proClose').onclick = closeProModal;
+$('proCancel').onclick = closeProModal;
+$('proModal').addEventListener('click', e => {
+  if(e.target === $('proModal')){ closeProModal(); return; }
+  const b = e.target.closest('.pro-file'); if(b){ proFileTarget = b.dataset.for; $('proFileInput').click(); }
+});
+$('proFileInput').onchange = e => { const f = e.target.files[0]; if(f && proFileTarget){ const r = new FileReader(); r.onload = () => { const el = $(proFileTarget); if(el) el.value = String(r.result); }; r.readAsText(f); } e.target.value = ''; proFileTarget = null; };
+$('proCreate').onclick = () => {
+  const docs = { brief: $('proBrief').value.trim(), userflow: $('proFlow').value.trim(), tz: $('proTz').value.trim(), design: $('proDesign').value.trim(), kb: $('proKb').value.trim() };
+  if(!docs.brief || !docs.userflow || !docs.tz){ toast(t('pro.req')); return; }
+  if(!$('apiKey').value.trim()){ closeProModal(); $('settings').classList.add('open'); toast('API key'); return; }
+  closeProModal(); startProProject(docs);
+};
+
+// ── Подключение репозитория (GitHub public + локальная папка) → виртуальная ФС ──
+const BIN_EXT = new Set('png,jpg,jpeg,gif,webp,ico,bmp,tiff,svgz,mp3,mp4,mov,avi,webm,wav,ogg,flac,zip,gz,tgz,tar,rar,7z,pdf,doc,docx,xls,xlsx,ppt,pptx,woff,woff2,ttf,eot,otf,exe,dll,so,dylib,bin,wasm,class,jar,pyc,heic,mkv'.split(','));
+function isBinaryPath(p){ return BIN_EXT.has((p.split('.').pop() || '').toLowerCase()); }
+function finishRepo(r){
+  if(!r) return;
+  const c = activeChat() || newChat();
+  c.repo = r.name; c.repoFiles = r.paths || []; c.repoMeta = r.meta || null; saveChatsState(); renderContextPanel();
+  toast(t('repo.loaded') + ': ' + r.count + ' (' + r.name + ')');
+  $('repoModal').classList.add('hidden');
+}
+function renderRepoCurrent(){
+  const c = activeChat();
+  const connected = !!(c && c.repo);
+  $('repoCurrent').style.display = connected ? 'block' : 'none';
+  $('repoConnect').style.display = connected ? 'none' : 'block';
+  if(connected){
+    $('repoCurName').textContent = c.repo;
+    const hasMeta = !!c.repoMeta;            // GitHub (а не локальная папка)
+    $('repoGhBox').style.display = hasMeta ? 'block' : 'none';
+    if(hasMeta) $('repoBranch').value = c.repoMeta.branch || 'main';
+  }
+}
+async function loadGithubRepo(input, token, statusEl){
+  const cleaned = String(input || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '');
+  const m = cleaned.match(/^([^\/\s]+)\/([^\/\s#?]+)(?:\/tree\/([^\/\s#?]+))?/);
+  if(!m){ statusEl.textContent = t('repo.bad'); return null; }
+  const owner = m[1], repo = m[2]; let branch = m[3] || '';
+  const headers = token ? { Authorization: 'Bearer ' + token } : {};
+  try {
+    statusEl.textContent = '…';
+    if(!branch){ const info = await (await fetch('https://api.github.com/repos/' + owner + '/' + repo, { headers })).json(); branch = info.default_branch || 'main'; }
+    const tj = await (await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/git/trees/' + branch + '?recursive=1', { headers })).json();
+    if(!Array.isArray(tj.tree)){ statusEl.textContent = 'GitHub: ' + (tj.message || 'ошибка'); return null; }
+    const blobs = tj.tree.filter(x => x.type === 'blob' && !isBinaryPath(x.path) && (x.size == null || x.size < 200000)).slice(0, 400);
+    let ok = 0; const paths = [];
+    for(const b of blobs){
+      statusEl.textContent = (ok + 1) + '/' + blobs.length + ': ' + b.path;
+      try { const txt = await (await fetch('https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + branch + '/' + b.path)).text(); await VFS.writeFile(b.path, txt); paths.push(b.path); ok++; } catch(e){}
+    }
+    return { name: owner + '/' + repo + '@' + branch, count: ok, paths, meta: { owner, repo, branch } };
+  } catch(e){ statusEl.textContent = 'Ошибка: ' + (e.message || e) + ' (CORS/лимит — добавь токен)'; return null; }
+}
+async function loadLocalFolder(fileList, statusEl){
+  const files = [...fileList].filter(f => !isBinaryPath(f.name) && f.size < 200000).slice(0, 400);
+  let ok = 0; const paths = [];
+  for(const f of files){
+    const path = f.webkitRelativePath || f.name;
+    statusEl.textContent = (ok + 1) + '/' + files.length + ': ' + path;
+    try { const txt = await f.text(); await VFS.writeFile(path, txt); paths.push(path); ok++; } catch(e){}
+  }
+  return { name: 'локальная папка', count: ok, paths };
+}
+$('repoBtn').onclick = () => { $('repoStatus').textContent = ''; $('repoToken').value = store.get('ds_gh_token') || ''; renderRepoCurrent(); $('repoModal').classList.remove('hidden'); };
+$('repoClose').onclick = () => $('repoModal').classList.add('hidden');
+$('repoCancel').onclick = () => $('repoModal').classList.add('hidden');
+$('repoModal').addEventListener('click', e => { if(e.target === $('repoModal')) $('repoModal').classList.add('hidden'); });
+$('repoFolderBtn').onclick = () => $('repoFolder').click();
+$('repoFolder').onchange = async e => { if(e.target.files.length){ finishRepo(await loadLocalFolder(e.target.files, $('repoStatus'))); } e.target.value = ''; };
+$('repoLoadGh').onclick = async () => { const tok = $('repoToken').value.trim(); if(tok) store.set('ds_gh_token', tok); $('repoLoadGh').disabled = true; finishRepo(await loadGithubRepo($('repoUrl').value, tok, $('repoStatus'))); $('repoLoadGh').disabled = false; };
+$('repoDisconnect').onclick = async () => {
+  const c = activeChat(); if(!c || !c.repo) return;
+  for(const p of (c.repoFiles || [])){ try { await VFS.deleteFile(p); } catch(e){} }
+  delete c.repo; delete c.repoFiles; delete c.repoMeta; saveChatsState(); renderContextPanel(); renderRepoCurrent();
+  toast(t('repo.disconnected'));
+};
+function ghHint(msg){
+  msg = String(msg || '');
+  if(/Resource not accessible|Bad credentials|requires authentication|Must have admin|403|Not Found/i.test(msg))
+    return msg + ' — токену не хватает прав. Нужен classic-токен со scope «repo» (создание/запись), либо fine-grained с доступом к репозиторию и правами Contents: Read and write (для создания — ещё Administration: Read and write). Для орг-репозиториев включи доступ PAT в настройках организации.';
+  return msg;
+}
+// Push: коммит всех файлов ФС обратно в репозиторий (Git Data API — один коммит)
+async function pushToGithub(){
+  const c = activeChat(); if(!c || !c.repoMeta) return;
+  const token = (store.get('ds_gh_token') || $('repoToken').value || '').trim();
+  if(!token){ toast(t('repo.needToken')); $('repoToken').focus(); return; }
+  store.set('ds_gh_token', token);
+  const { owner, repo } = c.repoMeta;
+  const branch = ($('repoBranch').value || '').trim() || c.repoMeta.branch || 'main';
+  const message = ($('repoMsg').value || '').trim() || 'Update from TurboCodAI';
+  const fullSync = $('repoFullSync').checked;
+  const api = 'https://api.github.com/repos/' + owner + '/' + repo;
+  const headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
+  const st = $('repoStatus'); st.textContent = t('repo.pushing'); $('repoPush').disabled = true;
+  try {
+    let ref = await (await fetch(api + '/git/ref/heads/' + branch, { headers })).json();
+    let headSha, baseTreeSha;
+    if(ref.object){ headSha = ref.object.sha; }
+    else { // ветки нет — отталкиваемся от ветки по умолчанию (новая ветка будет создана)
+      const info = await (await fetch(api, { headers })).json();
+      const dref = await (await fetch(api + '/git/ref/heads/' + (info.default_branch || 'main'), { headers })).json();
+      if(!dref.object) throw new Error('нет базовой ветки');
+      headSha = dref.object.sha;
+    }
+    const commit = await (await fetch(api + '/git/commits/' + headSha, { headers })).json();
+    baseTreeSha = commit.tree.sha;
+    const files = await VFS.listFiles();
+    const fsPaths = new Set(files.map(f => f.path));
+    const tree = [];
+    for(const f of files){
+      const content = await VFS.readFile(f.path);
+      if(typeof content === 'string' && /^data:[^;,]*;base64,/.test(content)){ // бинарь (картинка) — через blob base64
+        const blob = await (await fetch(api + '/git/blobs', { method: 'POST', headers, body: JSON.stringify({ content: content.split(',')[1] || '', encoding: 'base64' }) })).json();
+        if(blob.sha) tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
+      } else tree.push({ path: f.path, mode: '100644', type: 'blob', content: content == null ? '' : content });
+    }
+    if(fullSync){ // удалить из репо файлы, которых нет в ФС
+      const full = await (await fetch(api + '/git/trees/' + baseTreeSha + '?recursive=1', { headers })).json();
+      if(Array.isArray(full.tree)) for(const e of full.tree){ if(e.type === 'blob' && !fsPaths.has(e.path)) tree.push({ path: e.path, mode: e.mode || '100644', type: 'blob', sha: null }); }
+    }
+    const nt = await (await fetch(api + '/git/trees', { method: 'POST', headers, body: JSON.stringify({ base_tree: baseTreeSha, tree }) })).json();
+    if(!nt.sha) throw new Error(nt.message || 'tree');
+    const nc = await (await fetch(api + '/git/commits', { method: 'POST', headers, body: JSON.stringify({ message, tree: nt.sha, parents: [headSha] }) })).json();
+    if(!nc.sha) throw new Error(nc.message || 'commit');
+    let upd;
+    if(ref.object) upd = await (await fetch(api + '/git/refs/heads/' + branch, { method: 'PATCH', headers, body: JSON.stringify({ sha: nc.sha }) })).json();
+    else upd = await (await fetch(api + '/git/refs', { method: 'POST', headers, body: JSON.stringify({ ref: 'refs/heads/' + branch, sha: nc.sha }) })).json();
+    if(!upd.object) throw new Error(upd.message || 'ref update');
+    c.repoMeta.branch = branch; c.repo = owner + '/' + repo + '@' + branch; saveChatsState(); renderRepoCurrent();
+    st.textContent = ''; toast(t('repo.pushed') + ' (' + files.length + ', ' + branch + ')');
+  } catch(e){ const m = ghHint(e.message || e); st.textContent = 'Push: ' + m; toast('Push: ' + m); }
+  $('repoPush').disabled = false;
+}
+$('repoPush').onclick = pushToGithub;
+// Создать новый репозиторий на GitHub и сразу сохранить туда текущую ФС
+$('repoCreate').onclick = async () => {
+  const name = $('repoNewName').value.trim(); if(!name){ toast(t('repo.bad')); return; }
+  const token = (store.get('ds_gh_token') || $('repoToken').value || '').trim();
+  if(!token){ toast(t('repo.needToken')); $('repoToken').focus(); return; }
+  store.set('ds_gh_token', token);
+  const st = $('repoStatus'); st.textContent = t('repo.creating'); $('repoCreate').disabled = true;
+  try {
+    const headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
+    const r = await (await fetch('https://api.github.com/user/repos', { method: 'POST', headers, body: JSON.stringify({ name, private: $('repoNewPriv').checked, auto_init: true }) })).json();
+    if(!r.owner) throw new Error(r.message || (r.errors && r.errors[0] && r.errors[0].message) || 'ошибка');
+    const c = activeChat() || newChat();
+    const branch = r.default_branch || 'main';
+    c.repo = r.owner.login + '/' + r.name + '@' + branch;
+    c.repoFiles = []; c.repoMeta = { owner: r.owner.login, repo: r.name, branch };
+    saveChatsState(); renderRepoCurrent();
+    st.textContent = t('repo.created') + ' — ' + c.repo;
+    await pushToGithub();   // сохранить текущую ФС в новый репозиторий
+  } catch(e){ const m = ghHint(e.message || e); st.textContent = 'GitHub: ' + m; toast('GitHub: ' + m); }
+  $('repoCreate').disabled = false;
+};
+
+// (4) Виртуальная ФС на IndexedDB + парсинг и выполнение инструментов
+// Виртуальная ФС — СВОЯ у каждого чата, хранится в IndexedDB (большая квота, переживает перезагрузку).
+const VFS = (() => {
+  let dbp;
+  function db(){
+    if(!dbp) dbp = new Promise((res, rej) => {
+      const r = indexedDB.open('ds_vfs2', 1);
+      r.onupgradeneeded = () => { const st = r.result.createObjectStore('files', { keyPath: 'key' }); st.createIndex('chat', 'chat', { unique: false }); };
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    return dbp;
+  }
+  async function os(mode){ const d = await db(); return d.transaction('files', mode).objectStore('files'); }
+  const p = req => new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+  const cid = () => activeChatId || 'global';
+  const key = (c, path) => c + '\u0000' + safePath(path);
+  return {
+    async writeFile(path, content){ const s = await os('readwrite'); const c = cid(); await p(s.put({ key: key(c, path), chat: c, path: safePath(path), content: String(content) })); return true; },
+    async readFile(path){ const s = await os('readonly'); const r = await p(s.get(key(cid(), path))); return r ? r.content : null; },
+    async listFiles(){ const s = await os('readonly'); const r = await p(s.index('chat').getAll(IDBKeyRange.only(cid()))); return r.map(f => ({ path: f.path, size: (f.content || '').length })); },
+    async deleteFile(path){ const s = await os('readwrite'); await p(s.delete(key(cid(), path))); return true; },
+    async deleteChat(chatId){ const s = await os('readwrite'); const keys = await p(s.index('chat').getAllKeys(IDBKeyRange.only(chatId))); for(const k of keys) await p(s.delete(k)); return true; },
+    async searchFiles(pattern){
+      const s = await os('readonly'); const all = await p(s.index('chat').getAll(IDBKeyRange.only(cid())));
+      let re = null; try { re = new RegExp(pattern, 'i'); } catch(e){}
+      const out = [];
+      for(const f of all){ String(f.content).split('\n').forEach((ln, i) => { if(re ? re.test(ln) : ln.includes(pattern)) out.push({ path: f.path, line: i + 1, text: ln.trim().slice(0, 200) }); }); }
+      return out;
+    },
+  };
+})();
+function decodeAttr(s){ return String(s).replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+// генерация изображений (OpenAI images API) → сохраняем в ФС как data URL
+let imgCache = {}; // path -> data URL (для синхронной подстановки в превью)
+async function genImage(prompt, path, params){
+  const prof = getImageProfile();
+  if(!prof) return { error: 'нет профиля генерации изображений' };
+  params = params || {};
+  const url = (prof.baseUrl || '').trim().replace(/\/+$/, '') + '/images/generations';
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + prof.apiKey },
+      body: JSON.stringify({ model: prof.model || 'dall-e-3', prompt, n: 1, size: params.size || '1024x1024', response_format: 'b64_json' }) });
+    if(!r.ok) return { error: 'HTTP ' + r.status + ': ' + (await r.text()).slice(0, 200) };
+    const j = await r.json(); const d = j.data && j.data[0];
+    let dataUrl;
+    if(d && d.b64_json) dataUrl = 'data:image/png;base64,' + d.b64_json;
+    else if(d && d.url) dataUrl = d.url;
+    else return { error: 'нет изображения в ответе' };
+    await VFS.writeFile(path, dataUrl); imgCache[safePath(path)] = dataUrl;
+    return { ok: true, path };
+  } catch(e){ return { error: String(e.message || e) }; }
+}
+async function loadImgCache(){
+  imgCache = {};
+  try { const files = await VFS.listFiles(); for(const f of files){ const c = await VFS.readFile(f.path); if(c && c.startsWith('data:image')) imgCache[f.path] = c; } } catch(e){}
+}
+// имя-вариант (дубликат/версия) → базовое имя
+function baseVariant(name){
+  const slash = name.lastIndexOf('/'); const dir = slash >= 0 ? name.slice(0, slash + 1) : ''; let base = slash >= 0 ? name.slice(slash + 1) : name;
+  const dot = base.lastIndexOf('.'); const ext = dot > 0 ? base.slice(dot) : ''; let stem = dot > 0 ? base.slice(0, dot) : base;
+  stem = stem.replace(/\s*\(\d+\)$/, '').replace(/[ _-]+(copy|копия|new|новый|final|финал|updated|upd|v\d+|версия\d*)$/i, '').replace(/[ _-]+$/, '');
+  return dir + stem + ext;
+}
+// если ИИ пишет дубликат существующего файла — перенаправляем запись в оригинал
+async function resolveWritePath(raw){
+  const sp = safePath(raw);
+  let files; try { files = await VFS.listFiles(); } catch(e){ return { path: sp, remapped: false }; }
+  if(files.some(f => f.path === sp)) return { path: sp, remapped: false };
+  const bv = baseVariant(sp);
+  if(bv !== sp){
+    const hit = files.find(f => f.path === bv || f.path.split('/').pop() === bv.split('/').pop());
+    if(hit) return { path: hit.path, remapped: true };
+  }
+  return { path: sp, remapped: false };
+}
+async function doWrite(raw, content, results){
+  const r = await resolveWritePath(raw);
+  try {
+    await VFS.writeFile(r.path, content);
+    const o = { tool: 'write_file', path: r.path, ok: true };
+    if(r.remapped) o.note = 'дубликат запрещён: записал в СУЩЕСТВУЮЩИЙ файл ' + r.path + ' вместо ' + raw;
+    results.push(o);
+  } catch(e){ results.push({ tool: 'write_file', path: r.path, error: String(e) }); }
+}
+async function parseAndExecuteTools(text){
+  const results = []; let m;
+  // write_file: два вида — content в атрибуте (самозакрывающийся) ИЛИ блок с содержимым
+  const wfAttr = /<write_file\s+path="([^"]+)"\s+content="([\s\S]*?)"\s*\/?>/g;
+  while((m = wfAttr.exec(text))){ await doWrite(m[1], decodeAttr(m[2] ?? ''), results); }
+  const wfBlock = /<write_file\s+path="([^"]+)"\s*>([\s\S]*?)<\/write_file>/g;
+  while((m = wfBlock.exec(text))){ await doWrite(m[1], decodeAttr(m[2] ?? ''), results); }
+  const rf = /<read_file\s+path="([^"]+)"\s*\/?>/g;
+  while((m = rf.exec(text))){ const c = await VFS.readFile(m[1]); results.push({ tool: 'read_file', path: m[1], content: c == null ? '(файл не найден)' : c.slice(0, 4000) }); }
+  const gp = /<grep\s+pattern="([^"]+)"\s*\/?>/g;
+  while((m = gp.exec(text))){ const r = await VFS.searchFiles(decodeAttr(m[1])); results.push({ tool: 'grep', pattern: m[1], matches: r.slice(0, 50) }); }
+  const gi = /<gen_image\b([^>]*?)\/?>/gi; let gn = 0;
+  while((m = gi.exec(text))){
+    const a = m[1];
+    const prompt = decodeAttr((a.match(/prompt="([^"]*)"/i) || [])[1] || '');
+    const path = safePath((a.match(/path="([^"]*)"/i) || [])[1] || ('img/image' + (++gn) + '.png'));
+    const size = (a.match(/size="([^"]*)"/i) || [])[1] || '';
+    if(!prompt){ results.push({ tool: 'gen_image', error: 'нужен prompt' }); continue; }
+    const res = await genImage(prompt, path, { size });
+    results.push(Object.assign({ tool: 'gen_image', path }, res));
+  }
+  return results;
+}
+
+// (3) Управление контекстом (contextManager): сжатие истории
+async function summarizeText(text){
+  try {
+    const r = await fetch(endpoint(), { method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ model: $('model').value.trim(), stream: false, messages: [
+        { role: 'system', content: 'Сожми диалог в краткое резюме: ключевые факты, решения, незакрытые задачи. По-русски, без воды.' },
+        { role: 'user', content: text } ] }) });
+    if(!r.ok) throw await httpError(r);
+    return (await r.json()).choices[0].message.content || '';
+  } catch(e){ return '[резюме недоступно: ' + (e.message || e) + ']'; }
+}
+const CTX_KEEP = 10, CTX_LIMIT = 24;
+async function compressHistory(chat){
+  if(!chat || chat.messages.length <= CTX_KEEP + 2){ toast('Сжимать нечего'); return false; }
+  const old = chat.messages.slice(0, chat.messages.length - CTX_KEEP);
+  const text = old.map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : '[вложение]'}`).join('\n').slice(0, 12000);
+  toast('Сжимаю контекст…');
+  const sum = await summarizeText(text);
+  chat.summary = (chat.summary ? chat.summary + '\n' : '') + sum;
+  chat.messages = chat.messages.slice(chat.messages.length - CTX_KEEP);
+  saveChatsState(); renderMessages(chat); renderContextPanel();
+  toast('Контекст сжат');
+  return true;
+}
+
+// (2) Саморефлексия (self-refine): до 3 итераций
+function addRefineButton(bubble, chat){
+  const wrap = document.createElement('div'); wrap.className = 'suggestions';
+  const b = document.createElement('button'); b.className = 'sugg'; b.style.borderRadius = '8px'; b.textContent = '✨ Улучшить ответ';
+  b.onclick = () => selfRefine(chat, b);
+  wrap.appendChild(b); bubble.parentElement.appendChild(wrap);
+}
+async function selfRefine(chat, btn){
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '✨ Улучшаю…';
+  let current = [...chat.messages].reverse().find(m => m.role === 'assistant')?.content || '';
+  try {
+    for(let i = 0; i < 3; i++){
+      const b2 = addMsg('assistant', '');
+      const r = await fetch(endpoint(), { method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ model: $('model').value.trim(), stream: false, messages: [
+          { role: 'system', content: 'Ты строгий редактор-критик. Проанализируй ответ: найди ошибки, неточности и слабые места, затем выдай УЛУЧШЕННУЮ финальную версию. Если улучшать нечего — верни ровно "БЕЗ ИЗМЕНЕНИЙ". Иначе верни только улучшенный ответ.' },
+          { role: 'user', content: 'Итерация ' + (i + 1) + '. Текущий ответ:\n\n' + current } ] }) });
+      if(!r.ok) throw await httpError(r);
+      const improved = ((await r.json()).choices[0].message.content || '').trim();
+      if(/^БЕЗ ИЗМЕНЕНИЙ/i.test(improved)){ b2.innerHTML = '<span class="err" style="color:var(--muted)">Итерация ' + (i + 1) + ': улучшать нечего ✓</span>'; break; }
+      b2.innerHTML = renderMd('**✨ Улучшено (итерация ' + (i + 1) + '):**\n\n' + improved);
+      chat.messages.push({ role: 'assistant', content: improved });
+      handleArtifacts(improved, b2);
+      current = improved; saveChatsState();
+    }
+  } catch(e){ toast('Ошибка self-refine: ' + (e.message || e)); }
+  btn.disabled = false; btn.textContent = orig; renderContextPanel();
+}
+
+// (7) Экспорт/импорт сессии (sessionManager)
+async function exportSession(){
+  const chat = activeChat();
+  let files = [];
+  try { const list = await VFS.listFiles(); for(const f of list) files.push({ path: f.path, content: await VFS.readFile(f.path) }); } catch(e){}
+  const data = { app: 'deepseek-claude', version: 1, exportedAt: new Date().toISOString(),
+    chat: chat ? { title: chat.title, messages: chat.messages, summary: chat.summary || '' } : null,
+    files, settings: { sys: $('sysPrompt').value, profiles, activeProfileId } };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'session.json');
+  toast('Сессия экспортирована');
+}
+function importSession(file){
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if(d.chat){ const c = { id: uid(), title: d.chat.title || 'Импорт', messages: d.chat.messages || [], summary: d.chat.summary || '', ts: Date.now() }; chats.unshift(c); activeChatId = c.id; saveChatsState(); renderChatList(); renderMessages(c); }
+      else if(!activeChat()){ newChat(); }
+      if(Array.isArray(d.files)) for(const f of d.files) await VFS.writeFile(f.path, f.content);  // в ФС активного (импортированного) чата
+      if(d.settings){
+        if(d.settings.sys){ $('sysPrompt').value = d.settings.sys; store.set('ds_sys', d.settings.sys); }
+        if(Array.isArray(d.settings.profiles) && d.settings.profiles.length){ profiles = d.settings.profiles; activeProfileId = d.settings.activeProfileId || profiles[0].id; jset('ds_profiles', profiles); store.set('ds_active_profile', activeProfileId); fillProfileSelect(); applyProfile(activeProfile()); }
+      }
+      toast('Сессия импортирована'); renderContextPanel();
+    } catch(e){ toast('Ошибка импорта: ' + (e.message || e)); }
+  };
+  reader.readAsText(file);
+}
+
+// (5) Панель управления контекстом (ContextPanel)
+async function renderContextPanel(){
+  if($('ctxPanel').classList.contains('hidden')) return;
+  const chat = activeChat(); const msgs = chat ? chat.messages : [];
+  let files = []; try { files = await VFS.listFiles(); } catch(e){}
+  const last5 = msgs.slice(-5).map(m => `<div class="ctx-msg"><span class="ctx-role">${m.role}</span>${esc(String((m.text ?? m.content ?? '')).slice(0, 140))}</div>`).join('') || '<div class="note">пусто</div>';
+  const fileList = files.map(f => `<div class="ctx-file"><span class="vfs-open" data-vfsopen="${esc(f.path)}" title="${esc(f.path)}">📄 ${esc(f.path)}</span><span class="ctx-size">${f.size}b</span><span class="vfs-act" data-vfsdl="${esc(f.path)}" title="Скачать">${ICON.download}</span><span class="x" data-vfsdel="${esc(f.path)}" title="Удалить">${ICON.x}</span></div>`).join('') || '<div class="note">нет файлов</div>';
+  $('ctxBody').innerHTML =
+    `<div class="ctx-stat">Сообщений в истории: <b>${msgs.length}</b></div>` +
+    `<div class="ctx-stat">Сжатие: <b>${chat && chat.summary ? 'есть резюме (' + chat.summary.length + ' симв.)' : 'нет'}</b></div>` +
+    `<div class="note">Авто-сжатие при &gt; ${CTX_LIMIT} сообщений (хранит последние ${CTX_KEEP}).</div>` +
+    `<h4>Последние сообщения</h4>${last5}` +
+    `<h4>Файлы (виртуальная ФС): ${files.length}</h4>${fileList}`;
+}
+
+// привязки доп. возможностей
+$('ctxBtn').onclick = () => { $('ctxPanel').classList.toggle('hidden'); renderContextPanel(); };
+$('ctxClose').onclick = () => $('ctxPanel').classList.add('hidden');
+$('ctxCompress').onclick = () => compressHistory(activeChat());
+$('ctxClear').onclick = () => { const c = activeChat(); if(c){ c.messages = []; c.summary = ''; saveChatsState(); renderMessages(c); renderContextPanel(); } };
+async function openVfsFile(path){
+  const content = await VFS.readFile(path);
+  if(content == null){ toast(t('vfs.notfound')); return; }
+  const sp = safePath(path);
+  let idx = artState.items.findIndex(it => it.name === sp);
+  if(idx >= 0){ artState.items[idx].content = content; artState.items[idx].vfs = path; } // уже открыт — обновим и переключимся
+  else {
+    artState.items.push({ name: sp, content, type: guessType(path), prev: null, stat: null, vfs: path }); // отдельной вкладкой
+    lastFiles[sp] = content;
+    idx = artState.items.length - 1;
+  }
+  artState.active = idx;
+  $('artBtn').disabled = false;
+  $('artifacts').classList.remove('hidden');
+  renderArt();
+}
+$('ctxBody').onclick = async e => {
+  const del = e.target.closest('[data-vfsdel]'); if(del){ await VFS.deleteFile(del.dataset.vfsdel); renderContextPanel(); toast(t('vfs.deleted')); return; }
+  const dl = e.target.closest('[data-vfsdl]'); if(dl){ const c = await VFS.readFile(dl.dataset.vfsdl); if(c != null) downloadBlob(new Blob([c], { type: 'text/plain' }), dl.dataset.vfsdl.split('/').pop()); return; }
+  const op = e.target.closest('[data-vfsopen]'); if(op){ openVfsFile(op.dataset.vfsopen); return; }
+};
+$('ctxUpload').onclick = () => $('ctxFileInput').click();
+$('ctxFileInput').onchange = async e => {
+  for(const f of e.target.files){ if(f.size < 500000){ try { await VFS.writeFile(f.webkitRelativePath || f.name, await f.text()); } catch(err){} } }
+  e.target.value = ''; renderContextPanel(); renderFm(); toast(t('vfs.loaded'));
+};
+
+// ── Файловый менеджер (дерево ФС текущего чата) ──
+let fmClosed = new Set();
+function fmBuildTree(paths){
+  const root = { dirs: {}, files: [] };
+  for(const p of paths){
+    const parts = p.split('/'); let node = root;
+    for(let i = 0; i < parts.length - 1; i++){ const d = parts[i]; node.dirs[d] = node.dirs[d] || { dirs: {}, files: [] }; node = node.dirs[d]; }
+    node.files.push({ name: parts[parts.length - 1], path: p });
+  }
+  return root;
+}
+function fmRenderTree(node, prefix, depth){
+  let html = '';
+  for(const name of Object.keys(node.dirs).sort()){
+    const dpath = prefix ? prefix + '/' + name : name;
+    const open = !fmClosed.has(dpath);
+    html += `<div class="fm-dir" data-fmdir="${esc(dpath)}" style="padding-left:${depth * 14}px">${open ? '▾' : '▸'} 📁 ${esc(name)}</div>`;
+    if(open) html += fmRenderTree(node.dirs[name], dpath, depth + 1);
+  }
+  for(const f of node.files.sort((a, b) => a.name.localeCompare(b.name))){
+    html += `<div class="fm-file" style="padding-left:${depth * 14 + 16}px"><span class="fm-name" data-fmopen="${esc(f.path)}" title="${esc(f.path)}">📄 ${esc(f.name)}</span><span class="fm-acts"><span class="fm-a" data-fmchat="${esc(f.path)}" title="В чат">${ICON.send}</span><span class="fm-a" data-fmdl="${esc(f.path)}" title="Скачать">${ICON.download}</span><span class="fm-a" data-fmren="${esc(f.path)}" title="Переименовать">✎</span><span class="fm-a" data-fmdel="${esc(f.path)}" title="Удалить">${ICON.x}</span></span></div>`;
+  }
+  return html;
+}
+async function renderFm(){
+  if($('fmPanel').classList.contains('hidden')) return;
+  let files = []; try { files = await VFS.listFiles(); } catch(e){}
+  $('fmList').innerHTML = files.length ? fmRenderTree(fmBuildTree(files.map(f => f.path)), '', 0) : `<div class="note">${esc(t('fm.empty'))}</div>`;
+}
+$('fmBtn').onclick = () => { $('fmPanel').classList.toggle('hidden'); renderFm(); };
+$('fmClose').onclick = () => $('fmPanel').classList.add('hidden');
+$('fmNew').onclick = async () => { const name = prompt(t('fm.newName')); if(!name) return; await VFS.writeFile(name, ''); renderFm(); renderContextPanel(); openVfsFile(safePath(name)); };
+$('fmUpload').onclick = () => $('fmFileInput').click();
+$('fmZip').onclick = async () => {
+  const files = await VFS.listFiles(); if(!files.length){ toast(t('fm.empty')); return; }
+  const arr = []; for(const f of files) arr.push({ name: f.path, content: await VFS.readFile(f.path) });
+  downloadBlob(zipBlob(arr), 'project.zip');
+};
+$('fmFileInput').onchange = async e => { for(const f of e.target.files){ if(f.size < 2000000){ try { await VFS.writeFile(f.webkitRelativePath || f.name, await f.text()); } catch(err){} } } e.target.value = ''; renderFm(); renderContextPanel(); toast(t('vfs.loaded')); };
+$('fmList').onclick = async e => {
+  const dir = e.target.closest('[data-fmdir]'); if(dir){ const d = dir.dataset.fmdir; fmClosed.has(d) ? fmClosed.delete(d) : fmClosed.add(d); renderFm(); return; }
+  const op = e.target.closest('[data-fmopen]'); if(op){ openVfsFile(op.dataset.fmopen); return; }
+  const ch = e.target.closest('[data-fmchat]'); if(ch){ const c = await VFS.readFile(ch.dataset.fmchat); if(c != null){ attachments.push({ name: ch.dataset.fmchat.split('/').pop(), text: c }); renderAttachRow(); toast(t('fm.sent')); } return; }
+  const dl = e.target.closest('[data-fmdl]'); if(dl){ const c = await VFS.readFile(dl.dataset.fmdl); if(c != null) downloadBlob(new Blob([c], { type: 'text/plain' }), dl.dataset.fmdl.split('/').pop()); return; }
+  const ren = e.target.closest('[data-fmren]'); if(ren){ const old = ren.dataset.fmren; const nn = prompt(t('fm.newName'), old); if(!nn || nn === old) return; const c = await VFS.readFile(old); await VFS.writeFile(nn, c || ''); await VFS.deleteFile(old); renderFm(); renderContextPanel(); return; }
+  const del = e.target.closest('[data-fmdel]'); if(del){ await VFS.deleteFile(del.dataset.fmdel); renderFm(); renderContextPanel(); toast(t('vfs.deleted')); return; }
+};
+// drag-and-drop загрузка (файлы и папки)
+async function fmEntryToFiles(entry, prefix){
+  if(entry.isFile){ const file = await new Promise(res => entry.file(res)); return [{ file, path: prefix + entry.name }]; }
+  if(entry.isDirectory){
+    const reader = entry.createReader(); const entries = [];
+    while(true){ const batch = await new Promise(res => reader.readEntries(res, () => res([]))); if(!batch.length) break; entries.push(...batch); }
+    const lists = []; for(const en of entries) lists.push(await fmEntryToFiles(en, prefix + entry.name + '/'));
+    return lists.flat();
+  }
+  return [];
+}
+async function fmHandleDrop(e){
+  e.preventDefault(); $('fmPanel').classList.remove('fm-drag');
+  let collected = [];
+  const items = e.dataTransfer.items;
+  if(items && items.length && items[0].webkitGetAsEntry){
+    const entries = [...items].map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+    for(const en of entries) collected.push(...await fmEntryToFiles(en, ''));
+  } else {
+    collected = [...e.dataTransfer.files].map(f => ({ file: f, path: f.webkitRelativePath || f.name }));
+  }
+  let ok = 0;
+  for(const c of collected){ if(isBinaryPath(c.path) || c.file.size > 2000000) continue; try { await VFS.writeFile(c.path, await c.file.text()); ok++; } catch(err){} }
+  renderFm(); renderContextPanel(); toast(t('vfs.loaded') + (ok ? ': ' + ok : ''));
+}
+$('fmPanel').addEventListener('dragover', e => { e.preventDefault(); $('fmPanel').classList.add('fm-drag'); });
+$('fmPanel').addEventListener('dragleave', e => { if(e.target === $('fmPanel')) $('fmPanel').classList.remove('fm-drag'); });
+$('fmPanel').addEventListener('drop', fmHandleDrop);
+$('defProfilesBtn').onclick = addDefaultProfiles;
+$('exportBtn').onclick = exportSession;
+$('importBtn').onclick = () => $('importInput').click();
+$('importInput').onchange = e => { if(e.target.files[0]) importSession(e.target.files[0]); e.target.value = ''; };
+
+// ═══════════════ Команда агентов (координатор + до 4 исполнителей, один ключ) ═══════════════
+async function agentCall(system, user){
+  const r = await fetch(endpoint(), { method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ model: $('model').value.trim(), stream: false, messages: [
+      { role: 'system', content: system }, { role: 'user', content: user } ] }) });
+  if(!r.ok) throw await httpError(r);
+  return (await r.json()).choices[0].message.content || '';
+}
+function parseJSONLoose(text){
+  let t = (text || '').trim();
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if(f) t = f[1].trim();
+  const i = t.indexOf('{'), j = t.lastIndexOf('}');
+  if(i >= 0 && j > i) t = t.slice(i, j + 1);
+  try { return JSON.parse(t); } catch(e){ return null; }
+}
+const coordPlanSys = (n) => `Ты — координатор команды из ${n} агентов-разработчиков. Разбей задачу пользователя на ${n} максимально НЕЗАВИСИМЫХ подзадач (раздели по файлам/слоям, чтобы агенты не конфликтовали; задай общие имена файлов и интерфейсы). Верни СТРОГО JSON без текста вокруг:\n{"plan":"кратко об архитектуре и общих интерфейсах","agents":[{"id":1,"role":"роль","task":"подробное ТЗ: какие файлы и что в них, какие имена/экспорты использовать"}]}\nРовно ${n} агентов.`;
+const workerSys = () => `Ты — агент-разработчик в команде. Выполни ТОЛЬКО свою подзадачу, строго соблюдая общие имена файлов/функций/интерфейсов из ТЗ. Создавай ИМЕННО файлы с именами из поля "files" своего задания — имена ТОЧНО как указано (с тем же расширением), не переименовывай и ничего не добавляй от себя. Верни СТРОГО JSON без текста вокруг:\n{"files":[{"name":"точное-имя.расш","content":"полный код файла"}],"notes":"что сделал; какие интерфейсы экспортируешь и что ожидаешь от других"}\nЕсли в задании есть projectImages — это УЖЕ сгенерированные картинки проекта; ссылайся на эти пути в HTML/CSS (например <img src="img/hero.png">), не придумывай других имён для них.\nЕсли в задании есть currentFiles — это ТЕКУЩИЕ файлы проекта: РЕДАКТИРУЙ существующие (возвращай те же имена с обновлённым содержимым), не создавай дубликаты/новые версии; новые файлы — только если реально нужны.`;
+const coordReviewSys = () => `Ты — координатор. Тебе дают исходную задачу и результаты всех агентов (файлы + заметки). ПРОВЕРЬ, что всё СХОДИТСЯ: совпадают имена файлов/функций/импортов, нет конфликтов и дублей, части стыкуются, ничего не потеряно. ИСПРАВЬ несоответствия сам. Верни СТРОГО JSON без текста вокруг:\n{"issues":["несоответствия и что надо доделать"],"status":"ok|fixed","done":true,"summary":"краткий итог для пользователя","finalFiles":[{"name":"путь/имя","content":"финальный согласованный код"}]}\n- done=true ТОЛЬКО если всё согласовано и нерешённых проблем не осталось; иначе done=false и перечисли проблемы в issues.\n- Если среди агентов есть «Предыдущая сборка (база)» — это базовые файлы; правки других агентов приоритетнее базы.\n- СОХРАНЯЙ корректные имена файлов как у агентов; не переименовывай без необходимости. Имена в finalFiles должны быть согласованы: ссылки внутри кода (например <link href> и <script src> в HTML, импорты) ДОЛЖНЫ совпадать с реальными именами файлов.\n- finalFiles — ПОЛНЫЙ итоговый набор файлов проекта с правильными именами и расширениями.`;
+const fixWorkerSys = () => `Ты — агент-разработчик. Тебе дают: исходную задачу, твою подзадачу, ТЕКУЩИЕ файлы проекта (currentFiles) и список ПРОБЛЕМ от координатора (issues). Исправь так, чтобы проблемы из ТВОЕЙ зоны ответственности ушли и всё стыковалось с остальными частями. Верни СТРОГО JSON без текста вокруг:\n{"files":[{"name":"точное-имя.расш","content":"полный исправленный код"}],"notes":"что изменил"}\nИмена файлов — РОВНО как в currentFiles (не создавай новых имён, не меняй расширения). Возвращай только свои/изменённые файлы полными версиями.`;
+function mergeFiles(base, overrides){ const map = new Map(base.map(f => [f.name, f])); for(const f of overrides) map.set(f.name, f); return [...map.values()]; }
+function pickFinal(review, fallback){ return (review && review.finalFiles && review.finalFiles.length) ? review.finalFiles.map(f => ({ name: safePath(f.name || 'file'), content: String(f.content || '') })) : fallback; }
+
+let agentMode = false;
+let teamProfileIds = (() => { try { return JSON.parse(store.get('ds_team') || '[]') || []; } catch(e){ return []; } })();
+// эндпоинт/заголовки/модель для КОНКРЕТНОГО профиля (или активного из полей, если prof=null)
+function epOf(prof){ return ((prof ? prof.baseUrl : $('baseUrl').value) || 'https://api.deepseek.com').trim().replace(/\/+$/, '') + '/chat/completions'; }
+function hdrOf(prof){ return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (prof ? prof.apiKey : $('apiKey').value || '').trim() }; }
+function mdlOf(prof){ return ((prof ? prof.model : $('model').value) || '').trim(); }
+function getTeamProfiles(){ return teamProfileIds.map(id => profiles.find(p => p.id === id)).filter(Boolean); }
+function renderAgProfiles(){
+  const el = $('agProfiles'); if(!el) return;
+  el.innerHTML = profiles.map(p => `<label class="ag-prof"><input type="checkbox" data-pid="${p.id}" ${teamProfileIds.includes(p.id) ? 'checked' : ''}> ${esc(p.name || 'Профиль')} <span class="ctx-size">${esc(p.model || '')}${p.apiKey ? '' : ' · нет ключа'}</span></label>`).join('') || '<div class="note">нет профилей</div>';
+}
+// стриминговый вызов агента: токены льются в bubble (стрим-лог), возвращает полный текст. prof — профиль подключения.
+async function streamCall(system, user, bubble, onFirstToken, prof){
+  let acc = '';
+  const resp = await fetch(epOf(prof), { method: 'POST', headers: hdrOf(prof),
+    body: JSON.stringify({ model: mdlOf(prof), stream: true, messages: [
+      { role: 'system', content: system }, { role: 'user', content: user } ] }) });
+  if(!resp.ok) throw await httpError(resp);
+  const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = '';
+  while(true){
+    const { value, done } = await reader.read(); if(done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for(const line of lines){ const l = line.trim(); if(!l.startsWith('data:')) continue; const d = l.slice(5).trim(); if(d === '[DONE]') continue;
+      try { const j = JSON.parse(d); const t = j.choices?.[0]?.delta?.content || ''; if(t){ if(onFirstToken && !acc){ onFirstToken(); } acc += t; if(bubble){ bubble.innerHTML = '<div class="ag-stream">' + esc(acc.slice(-1400)) + '</div>'; scrollDown(); } } } catch {} }
+  }
+  return acc;
+}
+const coordDecideSys = (n, hasImg) => `Ты — координатор разработки. Реши, нужна ли КОМАНДА из нескольких агентов: команда нужна, если задача требует сгенерировать НЕСКОЛЬКО файлов или разные слои (разметка/стили/логика и т.п.). Если это обычный вопрос или один небольшой файл — команда НЕ нужна.\nВерни СТРОГО JSON без текста вокруг:\n{"needsTeam":true,"plan":"кратко об архитектуре и общих именах/интерфейсах","agents":[{"id":1,"role":"роль","task":"подробное ТЗ: что в файлах, какие функции/экспорты","files":["index.html"]}]}\n- Если команда НЕ нужна — {"needsTeam":false}.\n- Если нужна — раздели на МАКС ${n} НЕЗАВИСИМЫХ подзадач (не больше ${n}).\n- Для КАЖДОГО агента в поле "files" укажи ТОЧНЫЕ имена файлов, которые он создаёт (с расширениями, обычно без путей). Имена должны складываться в целостный проект: например index.html подключает style.css и app.js — значит эти имена и используем у соответствующих агентов. Без дублей имён между агентами.` + (hasImg ? `\n- Доступна ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ. Если проекту нужны картинки (hero, фон, иллюстрации, иконки) — добавь в ответ поле "images":[{"prompt":"подробное описание на английском","path":"img/hero.png","size":"1024x1024"}], и в ТЗ агентов укажи ссылаться на эти пути (например <img src="img/hero.png">). Картинки сгенерирует клиент.` : '');
+
+// Оркестрация прямо в чате (стрим-лог в ленте)
+async function orchestrateInChat(task, chat){
+  const n = +($('agCount') && $('agCount').value) || 4;
+  // PRO-чат: документы проекта подмешиваются во все промпты агентов
+  let docPrefix = (chat && chat.pro && chat.proDocs) ? proSystemPrompt(chat.proDocs) + '\n\n' : '';
+  // существующий проект (один чат — один проект): даём агентам текущие файлы и правило правки
+  let projectCtx = null;
+  try {
+    const fsFiles = await VFS.listFiles();
+    if(fsFiles.length){
+      docPrefix += '⛔ СУЩЕСТВУЮЩИЙ ПРОЕКТ (один чат — один проект). Текущие файлы:\n' + fsFiles.slice(0, 120).map(f => '- ' + f.path).join('\n') + '\nРЕДАКТИРУЙ ИМЕННО эти файлы (возвращай те же имена/пути с обновлённым содержимым). СТРОГО ЗАПРЕЩЕНЫ дубликаты и новые версии (style2.css, *-new, *-copy, *_v2 и т.п.). Новые файлы — ТОЛЬКО если в проекте реально нет подходящего и добавляется новая сущность.\n\n';
+      let total = 0; const ctx = {};
+      for(const f of fsFiles){ const c = await VFS.readFile(f.path); if(c && !c.startsWith('data:')){ total += c.length; if(total < 60000) ctx[f.path] = c; } }
+      if(Object.keys(ctx).length) projectCtx = ctx;
+    }
+  } catch(e){}
+  // Фаза 0 — координатор решает: нужна ли команда, и сразу даёт план
+  const coordBubble = addMsg('assistant', '');
+  coordBubble.innerHTML = '<span class="err" style="color:var(--muted)">🧭 Координатор анализирует задачу…</span>';
+  const plan = parseJSONLoose(await streamCall(docPrefix + coordDecideSys(n, !!getImageProfile()), task, coordBubble)) || {};
+  const defs = (Array.isArray(plan.agents) ? plan.agents : []).slice(0, n);
+  if(plan.needsTeam === false || defs.length < 2){
+    // команда не нужна — обычный ответ
+    coordBubble.innerHTML = renderMd('🧭 _Координатор: команда не нужна — отвечаю сам._');
+    const b = addMsg('assistant', '');
+    await runStream(await buildApiMessages(chat), b, chat);
+    return;
+  }
+  coordBubble.innerHTML = renderMd(`**🧭 Координатор** — собираю команду из ${defs.length} агентов.\n\n${plan.plan || ''}`);
+  chat.messages.push({ role: 'assistant', content: '[Координатор] ' + (plan.plan || ('команда из ' + defs.length + ' агентов')) });
+
+  // Генерация изображений проекта по плану координатора (если настроен профиль картинок)
+  let projImages = [];
+  if(getImageProfile() && Array.isArray(plan.images) && plan.images.length){
+    projImages = plan.images.slice(0, 8);
+    const ib = addMsg('assistant', ''); let gi = 0;
+    for(const im of projImages){
+      ib.innerHTML = renderMd('🖼 генерирую изображения… ' + (++gi) + '/' + projImages.length + ' (' + esc(im.path || '') + ')');
+      await genImage(im.prompt || '', safePath(im.path || ('img/img' + gi + '.png')), { size: im.size });
+    }
+    ib.innerHTML = renderMd('**🖼 Изображения готовы:** ' + projImages.map(i => '`' + safePath(i.path || '') + '`').join(', '));
+  }
+
+  const sec = (ms) => (ms / 1000).toFixed(1) + 'с';
+  const team = getTeamProfiles();               // профили исполнителей (если пусто — все на активном)
+  const actName = (activeProfile() && activeProfile().name) || 'активный';
+  const runAgents = (sys, label, payloadFor) => {
+    const t0 = Date.now();                       // общий старт фазы (все запросы уходят почти одновременно)
+    return Promise.all(defs.map((d, i) => {
+      const prof = team.length ? team[i % team.length] : null;
+      const pname = prof ? prof.name : actName;
+      const b = addMsg('assistant', ''); const tStart = Date.now(); let tFirst = 0;
+      b.innerHTML = `<b>${label} ${i + 1} — ${esc(d.role || '')}</b> <span style="color:var(--muted)">[${esc(pname)}] старт +${sec(tStart - t0)} · генерирует…</span>`;
+      return streamCall(docPrefix + sys(), JSON.stringify(payloadFor(d, i)), b, () => { tFirst = Date.now(); }, prof)
+        .then(raw => {
+          const tEnd = Date.now();
+          const jr = parseJSONLoose(raw) || {};
+          const planned = Array.isArray(d.files) ? d.files : [];
+          const files = (jr.files || []).map((f, k) => ({ name: safePath(f.name || planned[k] || ('agent' + (i + 1) + (k ? '_' + (k + 1) : '') + '.txt')), content: String(f.content || '') }));
+          b.innerHTML = renderMd(
+            `**✅ Агент ${i + 1} — ${d.role || ''}** · профиль: ${pname} (${mdlOf(prof) || '—'}) · файлов — ${files.length}${files.length ? ': ' + files.map(f => '`' + f.name + '`').join(', ') : ''}\n\n` +
+            `⏱ старт +${sec(tStart - t0)} · 1-й токен +${tFirst ? sec(tFirst - t0) : '—'} · готово +${sec(tEnd - t0)} (за ${sec(tEnd - tStart)})`);
+          return { role: d.role, task: d.task, files, notes: jr.notes || '' };
+        })
+        .catch(e => { b.innerHTML = `<span class="err">Агент ${i + 1} [${esc(pname)}]: ошибка — ${esc(String(e.message || e))}</span>`; return { role: d.role, task: d.task, files: [], notes: 'ошибка' }; });
+    }));
+  };
+
+  // Фаза 1 — агенты генерируют параллельно (один ключ)
+  let results = await runAgents(workerSys, '🤖 Агент', (d) => ({ overallTask: task, yourRole: d.role, yourSubtask: d.task || task, projectImages: projImages.map(i => safePath(i.path || '')), currentFiles: projectCtx || undefined }));
+
+  // Фаза 2 — координатор проверяет согласованность
+  const revBubble = addMsg('assistant', '');
+  revBubble.innerHTML = '<span class="err" style="color:var(--muted)">🧭 Координатор проверяет согласованность…</span>';
+  let review = parseJSONLoose(await streamCall(docPrefix + coordReviewSys(), JSON.stringify({ task, agents: results }), revBubble)) || {};
+  let finalFiles = pickFinal(review, results.flatMap(r => r.files));
+  const baseSnapshot = {}; finalFiles.forEach(f => { baseSnapshot[f.name] = f.content; }); // база до кругов доработки (для diff внутри запуска)
+
+  // Фаза 3 — цикл доработки (до 3 кругов)
+  const MAX_ROUNDS = 3; let round = 1;
+  while(review.done !== true && (review.issues && review.issues.length) && round < MAX_ROUNDS){
+    round++;
+    const issues = review.issues, base = finalFiles;
+    const note = addMsg('assistant', ''); note.innerHTML = renderMd(`**🔧 Круг доработки ${round - 1}** — координатор вернул на правку:\n` + issues.map(x => '- ' + x).join('\n'));
+    const fixes = await runAgents(fixWorkerSys, '🔧 Агент', (d) => ({ overallTask: task, yourRole: d.role, yourSubtask: d.task || task, issues, currentFiles: base, projectImages: projImages.map(i => safePath(i.path || '')) }));
+    const reviewAgents = [{ role: 'Предыдущая сборка (база)', files: base, notes: 'базовые файлы — сохрани, если агент их не переписал' }, ...fixes];
+    const rb = addMsg('assistant', ''); rb.innerHTML = `<span class="err" style="color:var(--muted)">🧭 Перепроверка (круг ${round - 1})…</span>`;
+    review = parseJSONLoose(await streamCall(docPrefix + coordReviewSys(), JSON.stringify({ task, agents: reviewAgents }), rb)) || review;
+    finalFiles = pickFinal(review, mergeFiles(base, fixes.flatMap(r => r.files)));
+    rb.innerHTML = renderMd(`🧭 _Перепроверка круга ${round - 1}: ${review.done === true ? 'согласовано ✓' : (review.status || 'есть замечания')}._`);
+  }
+
+  // Итог
+  if(finalFiles.length) openArtifacts(finalFiles, true, baseSnapshot);
+  const done = review.done === true;
+  revBubble.innerHTML = renderMd(`**🧭 Координатор — готово** (кругов доработки: ${round - 1}, статус: ${done ? 'согласовано ✓' : (review.status || 'ok')}).\n\n${review.summary || ''}\n\n` +
+    ((review.issues && review.issues.length && !done) ? '**Остались замечания:**\n' + review.issues.map(x => '- ' + x).join('\n') + '\n\n' : '') +
+    `Файлов в итоге: **${finalFiles.length}** — см. панель 🧩 Артефакты.`);
+  if(finalFiles.length) addDownloadBtn(revBubble, finalFiles);
+  chat.messages.push({ role: 'assistant', content: '[Команда: ' + defs.length + ' агентов] ' + (review.summary || ('файлов: ' + finalFiles.length)) });
+  saveChatsState(); scrollDown();
+}
+$('agBtn').onclick = () => { $('agPanel').classList.toggle('hidden'); renderAgProfiles(); };
+$('agClose').onclick = () => $('agPanel').classList.add('hidden');
+$('agProfiles').onchange = e => {
+  const c = e.target.closest('[data-pid]'); if(!c) return;
+  const id = c.dataset.pid;
+  if(c.checked){ if(!teamProfileIds.includes(id)) teamProfileIds.push(id); }
+  else teamProfileIds = teamProfileIds.filter(x => x !== id);
+  store.set('ds_team', JSON.stringify(teamProfileIds));
+};
+$('agModeBtn').onclick = () => { agentMode = !agentMode; $('agModeBtn').classList.toggle('on', agentMode); store.set('ds_agentmode', agentMode ? '1' : '0'); toast(agentMode ? 'Режим команды ВКЛ — агенты подключатся при необходимости' : 'Режим команды выкл'); };
+
+// База знаний о клиенте
+function renderKB(){ $('kbBody').innerHTML = renderMd(KB); }
+$('kbBtn').onclick = () => { $('kbPanel').classList.toggle('hidden'); renderKB(); };
+$('kbClose').onclick = () => $('kbPanel').classList.add('hidden');
+$('kbAsk').onclick = () => { $('kbPanel').classList.add('hidden'); $('input').value = 'Расскажи о программе TurboCodAI: что умеет и какие кнопки есть?'; autosize(); $('input').focus(); toast('Вопрос вставлен — нажми «Отправить»'); };
+$('kbCopy').onclick = async () => { try { await navigator.clipboard.writeText(KB); toast(t('toast.kbCopied')); } catch(e){ toast('—'); } };
+$('langBtn').onclick = () => { LANG = LANG === 'ru' ? 'en' : 'ru'; store.set('ds_lang', LANG); applyLang(); toast(LANG === 'ru' ? t('toast.langRu') : t('toast.langEn')); };
+
+// ═══════════ Иконки (инлайн-SVG в стиле Lucide, без CDN) ═══════════
+const _s = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+const ICON = {
+  menu: _s('<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'),
+  code: _s('<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>'),
+  layers: _s('<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>'),
+  bot: _s('<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="6" r="2"/><path d="M12 8v3"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>'),
+  moon: _s('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'),
+  settings: _s('<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>'),
+  trash: _s('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+  plus: _s('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'),
+  refresh: _s('<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'),
+  save: _s('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>'),
+  download: _s('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+  upload: _s('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'),
+  paperclip: _s('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'),
+  send: _s('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>'),
+  maximize: _s('<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>'),
+  x: _s('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),
+  compress: _s('<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>'),
+  book: _s('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),
+  copy: _s('<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  project: _s('<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>'),
+  eye: _s('<circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>'),
+  diff: _s('<circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v6a3 3 0 0 0 3 3h6"/><line x1="18" y1="9" x2="18" y2="15"/>'),
+  git: _s('<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>'),
+  folder: _s('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>'),
+};
+function applyIcons(){
+  const M = {
+    sidebarBtn:['menu',''], artBtn:['code',t('btn.artifacts')], ctxBtn:['layers',t('btn.context')], agBtn:['bot',t('btn.team')],
+    kbBtn:['book',t('btn.kb')], themeBtn:['moon',t('btn.theme')], settingsBtn:['settings',t('btn.settings')], clearBtn:['trash',t('btn.clear')],
+    kbClose:['x',''], kbAsk:['bot',t('btn.askClient')], kbCopy:['copy',t('btn.copy')],
+    newChat:['plus',t('btn.newChat')], proBtn:['project',t('pro.btn')], repoBtn:['git',t('repo.btn')], fmBtn:['folder',t('fm.btn')], profNew:['plus',t('btn.profile')], profDel:['trash',t('btn.delete')],
+    reloadPrompts:['refresh',t('btn.refresh')], saveBtn:['save',t('btn.save')],
+    defProfilesBtn:['plus',t('btn.defProfiles')], exportBtn:['download',t('btn.export')], importBtn:['upload',t('btn.import')],
+    attachBtn:['paperclip',''], agModeBtn:['bot',''], send:['send',t('btn.send')],
+    artFull:['maximize',''], artZip:['download',t('btn.zip')], artCloseBtn:['x',''],
+    ctxClose:['x',''], ctxUpload:['upload',t('btn.vfsUpload')], ctxCompress:['compress',t('btn.compress')], ctxClear:['trash',t('btn.clearHist')],
+    agClose:['x',''], fsClose:['x',t('btn.close')],
+  };
+  for(const id in M){ const el = $(id); if(!el) continue; const name = M[id][0], text = M[id][1]; el.innerHTML = (ICON[name] || '') + (text ? '<span>' + text + '</span>' : ''); }
+}
+
+// --- инициализация ---
+function init(){
+  applyIcons();
+  loadProfiles(); fillProfileSelect(); applyProfile(activeProfile());
+  $('sysPrompt').value = store.get('ds_sys') || DEFAULT_SYS;
+  curSet = parseInt(store.get('ds_set') || '0') || 0;
+  $('toolsOn').checked = store.get('ds_tools') === '1';
+  agentMode = store.get('ds_agentmode') === '1'; $('agModeBtn').classList.toggle('on', agentMode);
+  loadChats(); renderChatList(); renderMessages(activeChat());
+  fillSetSelect(); fillPresets(); loadPromptSets();
+  applyLang();
+  if(!$('apiKey').value) $('settings').classList.add('open');
+}
+try { init(); } catch(e){ console.error('init error:', e); }
+</script>
+</body>
+</html>
