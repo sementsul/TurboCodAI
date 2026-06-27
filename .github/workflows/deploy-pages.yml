@@ -23,6 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true     # сам включит Pages, если ещё не включён
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .            # публикуем корень репозитория (index.html + prompts/)
